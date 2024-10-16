@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавить объявление</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <h1>Добавить объявление</h1>
+    <form action="/publish" method="POST" enctype="multipart/form-data">
+        <label for="property_type">Вид жилья:</label>
+        <select name="property_type" id="property_type">
+            <option value="villa">Villa</option>
+            <option value="apartment">Apartment</option>
+            <option value="house">House</option>
+        </select><br>
+
+        <label for="kitchen_area">Площадь кухни:</label>
+        <input type="number" name="kitchen_area" id="kitchen_area" required><br>
+
+        <label for="house_area">Площадь дома:</label>
+        <input type="number" name="house_area" id="house_area" required><br>
+
+        <label for="rooms">Количество комнат:</label>
+        <input type="number" name="rooms" id="rooms" required><br>
+
+        <label for="floors">Этажи:</label>
+        <input type="number" name="floors" id="floors" required><br>
+
+        <label for="description">Описание:</label>
+        <textarea name="description" id="description" style="width: 100%; height: 200px;"></textarea>
+        <button type="button" onclick="improveDescription()">Improve description with AI</button><br>
+
+        <label for="image">Загрузить изображения:</label>
+        <input type="file" name="image" id="image" accept="image/*" multiple><br>
+
+        <button type="submit">Опубликовать</button>
+        <button formaction="/save-draft" formmethod="POST">Сохранить черновик</button>
+    </form>
+
+    <script>
+        function improveDescription() {
+    const propertyType = document.getElementById('property_type').value;
+    const kitchenArea = document.getElementById('kitchen_area').value;
+    const houseArea = document.getElementById('house_area').value;
+    const rooms = document.getElementById('rooms').value;
+    const floors = document.getElementById('floors').value;
+    const description = document.getElementById('description').value;
+    const imageFiles = document.getElementById('image').files;  // Получаем все выбранные файлы
+
+    if (imageFiles.length === 0) {
+        console.error('Пожалуйста, выберите хотя бы одно изображение.');
+        return;
+    }
+
+    const images = []; // Для хранения base64 кодов изображений
+
+    // Функция для обработки загрузки файлов
+    function processImageFile(index) {
+        if (index >= imageFiles.length) {
+            // После того, как все изображения обработаны, создаем JSON объект
+            const formData = {
+                property_type: propertyType,
+                kitchen_area: kitchenArea,
+                house_area: houseArea,
+                rooms: rooms,
+                floors: floors,
+                description: description,
+                images: images  // Добавляем массив изображений в JSON
+            };
+
+            const jsonData = JSON.stringify(formData);
+            console.log('JSON Data:', jsonData);
+
+            // Отправляем JSON на сервер
+            fetch('http://localhost:5000/improve-description', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: jsonData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.improved_description) {
+                    document.getElementById('description').value = data.improved_description;
+                } else {
+                    console.error('Ошибка:', data.error);
+                }
+            })
+            .catch(error => console.error('Ошибка:', error));
+        } else {
+            // Чтение текущего изображения
+            const reader = new FileReader();
+            reader.onloadend = function () {
+                let base64data = reader.result;
+                if (base64data.startsWith("data:")) {
+                    base64data = base64data.split(",")[1];
+                }
+                images.push(base64data); // Добавляем изображение в массив
+
+                // Обрабатываем следующее изображение
+                processImageFile(index + 1);
+            };
+            reader.readAsDataURL(imageFiles[index]);
+        }
+    }
+
+    // Начинаем обработку с первого изображения
+    processImageFile(0);
+}    
+    </script>
+</body>
+</html>

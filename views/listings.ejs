@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список объявлений</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <button href="/form">Назад к форме</button>
+    <h1>Список объявлений</h1>
+    <ul>
+        <% listings.forEach(listing => { %>
+            <li>
+                <strong><%= listing.property_type %></strong><br>
+                Площадь кухни: <%= listing.kitchen_area %> м²<br>
+                Площадь дома: <%= listing.house_area %> м²<br>
+                Комнат: <%= listing.rooms %><br>
+                Этажей: <%= listing.floors %><br>
+                Описание: <%= listing.description %><br>
+                <% if (listing.image) { %>
+                    <img src="<%= listing.image %>" alt="Изображение недвижимости" style="width: 200px;"><br>
+                <% } %>
+            </li>
+        <% }) %>
+    </ul>
+</body>
+</html>
