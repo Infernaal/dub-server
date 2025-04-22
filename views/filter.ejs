@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Запрос недвижимости</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 600px;
+      margin: 0 auto;
+      border: 1px solid #ddd;
+      background: #fff;
+    }
+    .messages {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      border-bottom: 1px solid #ddd;
+    }
+    .message {
+      margin: 10px 0;
+      padding: 8px 12px;
+      border-radius: 20px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    .bot {
+      background: #e1f5fe;
+      align-self: flex-start;
+    }
+    .user {
+      background: #c8e6c9;
+      align-self: flex-end;
+    }
+    .input-area {
+      display: flex;
+      padding: 10px;
+      gap: 10px;
+    }
+    .input-area input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      font-size: 16px;
+    }
+    .input-area button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 20px;
+      background: #2196f3;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .input-area button:hover {
+      background: #1976d2;
+    }
+    .clear-area {
+      display: flex;
+      justify-content: center;
+      padding: 10px;
+    }
+    .clear-area button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 10px;
+      background: #f44336;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .clear-area button:hover {
+      background: #d32f2f;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="messages" id="messages">
+      <!-- Приветственное сообщение от чата -->
+      <div class="message bot" id="welcomeMessage">
+        Привет! Все ваши запросы сохраняются. Если хотите, вы можете очистить историю запросов, нажав на специальную кнопку ниже. <br>
+        Какую недвижимость вы хотите? Напишите точно, лаконично, красиво и подробно.
+      </div>
+    </div>
+    <div class="input-area">
+      <input type="text" id="textInput" placeholder="Введите текст здесь...">
+      <button id="sendButton">Отправить</button>
+      <button id="recordButton">Записать голос</button>
+    </div>
+    <div class="clear-area">
+      <button id="clearButton">Очистить запросы</button>
+    </div>
+  </div>
+
+  <script>
+    // Назначаем фиксированный user_id
+    const USER_ID = "1";
+    const messagesEl = document.getElementById('messages');
+    const textInput = document.getElementById('textInput');
+    const sendButton = document.getElementById('sendButton');
+    const recordButton = document.getElementById('recordButton');
+    const clearButton = document.getElementById('clearButton');
+
+    // Добавляет сообщение в окно чата
+    function addMessage(text, sender = 'bot') {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'message ' + sender;
+      msgDiv.textContent = text;
+      messagesEl.appendChild(msgDiv);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // Отправка текстового сообщения
+    async function sendTextMessage() {
+      const text = textInput.value.trim();
+      if (!text) return;
+      addMessage(text, 'user');
+      textInput.value = '';
+      await processRequest({ text, user_id: USER_ID });
+    }
+
+    // Функция для отправки запроса на сервер
+    async function processRequest(data) {
+      try {
+        let formData;
+        let options;
+        if (data.audio) {
+          formData = new FormData();
+          formData.append('audio', data.audio);
+          // Добавляем user_id в параметры формы
+          formData.append('user_id', USER_ID);
+          options = { method: 'POST', body: formData };
+        } else {
+          options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: data.text, user_id: USER_ID })
+          };
+        }
+        const response = await fetch('http://localhost:5000/realestate', options);
+        const result = await response.json();
+        if (result.error) {
+          addMessage('Ошибка: ' + result.error, 'bot');
+        } else {
+          addMessage('Ответ сервера: ' + JSON.stringify(result.api_response), 'bot');
+        }
+      } catch (err) {
+        addMessage('Ошибка при отправке запроса: ' + err.message, 'bot');
+      }
+    }
+
+    // Функция для очистки истории запросов
+    async function clearRequests() {
+      try {
+        const options = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: USER_ID })
+        };
+        const response = await fetch('http://localhost:5000/clear_requests', options);
+        const result = await response.json();
+        if (result.error) {
+          addMessage('Ошибка: ' + result.error, 'bot');
+        } else {
+          addMessage(result.message, 'bot');
+        }
+      } catch (err) {
+        addMessage('Ошибка при очистке запросов: ' + err.message, 'bot');
+      }
+    }
+
+    sendButton.addEventListener('click', sendTextMessage);
+
+    textInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendTextMessage();
+      }
+    });
+
+    clearButton.addEventListener('click', clearRequests);
+
+    // Запись аудио через MediaRecorder
+    let mediaRecorder;
+    let audioChunks = [];
+    recordButton.addEventListener('click', async () => {
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          alert('Ваш браузер не поддерживает запись аудио');
+          return;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+          mediaRecorder.start();
+          recordButton.textContent = 'Остановить запись';
+          mediaRecorder.addEventListener('dataavailable', event => {
+            audioChunks.push(event.data);
+          });
+          mediaRecorder.addEventListener('stop', async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            addMessage('Голосовое сообщение отправлено', 'user');
+            await processRequest({ audio: audioBlob, user_id: USER_ID });
+            recordButton.textContent = 'Записать голос';
+          });
+        } catch (err) {
+          alert('Ошибка доступа к микрофону: ' + err.message);
+        }
+      } else if (mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+    });
+  </script>
+</body>
+</html>

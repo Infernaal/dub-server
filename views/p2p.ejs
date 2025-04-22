@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Dubadu P2P Orders</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 50%;
+      margin-top: 20px;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px;
+      border: 1px solid #ccc;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    #status {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .tab-buttons {
+      margin-bottom: 20px;
+    }
+    .tab-buttons button {
+      padding: 10px 20px;
+      margin-right: 10px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .hidden {
+      display: none;
+    }
+    .balance-info {
+      margin-bottom: 20px;
+    }
+    /* Блок поиска ордеров / Best Match */
+    #find-orders-block {
+      margin: 20px 0;
+      padding: 10px;
+      border: 1px solid #ccc;
+      width: 50%;
+    }
+    #find-orders-block input[type="number"] {
+      padding: 5px;
+      margin-right: 10px;
+      width: 150px;
+    }
+    #find-orders-block button {
+      padding: 5px 15px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    /* Блок «Best Match» */
+    #best-match-container {
+      margin-top: 15px;
+      background-color: #2c2c2c; /* Тёмный фон */
+      color: #fff;              /* Белый текст */
+      padding: 15px;
+      border-radius: 8px;
+      width: 50%;
+    }
+    #best-match-container .header {
+      font-weight: bold;
+      font-size: 1.1em;
+      margin-bottom: 5px;
+    }
+    .order-list {
+      margin-top: 10px;
+      padding: 10px 0;
+      border-top: 1px solid #444;
+      border-bottom: 1px solid #444;
+    }
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 5px 0;
+    }
+    .order-item .trader {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    .order-item .price {
+      color: #09d3ac;
+    }
+    /* Кнопка Buy Forevers под таблицами */
+    #buy-forevers-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    /* Модальные окна */
+    .modal {
+      display: none; /* скрыто по умолчанию */
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding-top: 60px;
+      text-align: center;
+    }
+    .modal-content {
+      background-color: #fff;
+      margin: 5% auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      width: 40%;
+    }
+    .modal-header {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .modal-footer {
+      margin-top: 20px;
+    }
+    /* Форма авторизации */
+    .auth-form {
+      max-width: 300px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .auth-form input {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+    }
+    /* Стили для уведомлений (колокольчик) */
+    .notification-bell {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      cursor: pointer;
+      font-size: 24px;
+    }
+    .notification-bell .badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: red;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 6px;
+      font-size: 12px;
+      display: none;
+    }
+    /* Стили для всплывающего окна уведомлений */
+    .notification-popup {
+      position: fixed;
+      top: 60px;
+      right: 20px;
+      width: 300px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      padding: 10px;
+      z-index: 1000;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .notification-popup.hidden {
+      display: none;
+    }
+    .notification-popup h4 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+    .notification-popup ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .notification-popup li {
+      border-bottom: 1px solid #eee;
+      padding: 5px 0;
+      font-size: 14px;
+    }
+    .notification-popup button {
+      margin-top: 10px;
+      padding: 5px 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Список ордеров (P2P)</h1>
+  <div id="status">Подключение к Socket.IO...</div>
+  
+  <!-- Значок уведомлений (колокольчик) с бейджиком -->
+  <div class="notification-bell" id="notificationBell">
+    🔔
+    <span class="badge" id="notificationBadge">0</span>
+  </div>
+  
+  <!-- Всплывающее окно уведомлений с кнопкой очистки -->
+  <div id="notificationPopup" class="notification-popup hidden">
+    <h4>Уведомления</h4>
+    <ul id="notificationList"></ul>
+    <button id="clearNotifications">Пометить как прочитанные</button>
+  </div>
+
+  <!-- Форма авторизации/регистрации -->
+  <div id="auth-section">
+    <h2>Авторизация / Регистрация</h2>
+    <div class="auth-form">
+      <input type="email" id="email" placeholder="Email">
+      <input type="fullname" id="fullname" placeholder="Full Name">
+      <input type="password" id="password" placeholder="Пароль">
+      <div style="margin-top: 10px;">
+        <button onclick="login()">Войти</button>
+        <button onclick="register()">Регистрация</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Основной раздел после авторизации -->
+  <div id="orders-section" class="hidden">
+    <!-- Информация о балансе пользователя -->
+    <div class="balance-info">
+      <p>Forevers: <span id="forevers-balance">0</span></p>
+      <p>Amount: <span id="amount-balance">0</span></p>
+    </div>
+
+    <!-- Блок поиска (Best Match) -->
+    <div id="find-orders-block">
+      <h2>Best Match</h2>
+      <input type="number" id="find-amount" placeholder="Введите количество forevers" min="1" step="1">
+      <button id="find-orders-btn">Поиск</button>
+      <button id="reset-orders-btn">Reset</button>
+      <!-- Блок Best Match по умолчанию скрыт -->
+      <div id="best-match-container" class="hidden"></div>
+    </div>
+
+    <!-- Кнопка для создания ордера -->
+    <button id="create-order-btn">Создать ордер</button>
+
+    <!-- Модальное окно для создания ордера -->
+    <div id="create-order-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">Создать ордер</div>
+        <label>Ваш Email (trader_name):</label>
+        <input type="text" id="trader-name">
+        <label>Тип ордера:</label>
+        <select id="order-type">
+          <option value="buy">Покупка</option>
+          <option value="sell">Продажа</option>
+        </select>
+        <label>Количество Forevers:</label>
+        <input type="number" id="order-quantity" min="1" step="1">
+        <label>Цена:</label>
+        <input type="number" id="order-price" min="0.01" step="0.01">
+        <div class="modal-footer">
+          <button id="submit-order">Выставить ордер</button>
+          <button id="close-create-modal">Закрыть</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Кнопки для переключения между Buy и Sell -->
+    <div class="tab-buttons">
+      <button id="buy-tab-btn">Buy</button>
+      <button id="sell-tab-btn">Sell</button>
+    </div>
+    <button id="cancel-order-btn">Отменить ордер</button>
+
+    <!-- Таблица ордеров Buy -->
+    <table id="buy-table">
+      <thead>
+        <tr>
+          <th>Trader</th>
+          <th>Price</th>
+          <th>Amount</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="buy-table-body"></tbody>
+    </table>
+
+    <!-- Таблица ордеров Sell -->
+    <table id="sell-table" class="hidden">
+      <thead>
+        <tr>
+          <th>Trader</th>
+          <th>Price</th>
+          <th>Amount</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="sell-table-body"></tbody>
+    </table>
+
+    <!-- Кнопка Buy Forevers под таблицами -->
+    <button id="buy-forevers-btn">Buy Forevers</button>
+  </div>
+
+  <!-- Модальное окно для оформления ордера (подтверждение Buy Forevers) -->
+  <div id="buy-forevers-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Buy Forevers - Подтверждение</div>
+      <div id="buy-forevers-content">
+        <!-- Здесь будет список выбранных ордеров и итоговая сумма -->
+      </div>
+      <div class="modal-footer">
+        <button id="confirm-buy-forevers">Buy</button>
+        <button id="close-buy-forevers-modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для оформления ордера (при покупке через таблицу) -->
+  <div id="order-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Оформить ордер</div>
+      <p>Цена: <span id="modal-price">0</span></p>
+      <p>Общее количество: <span id="modal-amount">0</span></p>
+      <p>Ваш баланс: <span id="modal-balance">0</span> forevers</p>
+      <div>
+        <label for="quantity">Количество для покупки:</label>
+        <input type="number" id="quantity" min="1" step="1" value="1">
+      </div>
+      <div class="modal-footer">
+        <button id="confirm-order">Подтвердить</button>
+        <button id="close-modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.IO клиентская библиотека -->
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    // Глобальные переменные
+    let socket = null;
+    let currentTab = "buy"; // По умолчанию вкладка Buy
+    let isBestMatchActive = false; // Флаг для Best Match
+    let bestMatchResponse = null;  // Для хранения Best Match
+    let notificationCount = 0;     // Счетчик уведомлений
+    let notifications = [];        // Массив для хранения уведомлений
+
+    // Подключение Socket.IO после авторизации
+    function connectSocket() {
+      const storedUserId = localStorage.getItem("user_id") || "";
+      socket = io("http://localhost:5000", { query: "user_id=" + storedUserId });
+
+      socket.on('connect', function() {
+        document.getElementById("status").textContent = "Соединение установлено!";
+        loadOfflineNotifications();
+      });
+
+      socket.on('disconnect', function() {
+        document.getElementById("status").textContent = "Соединение разорвано!";
+      });
+
+      socket.on('notification', function(data) {
+        console.log("Получено уведомление:", data);
+        notifications.push(data.message);
+        notificationCount = notifications.length;
+        updateNotificationBadge();
+      });
+
+      socket.on("orders_update", function(data) {
+        console.log("Обновленные ордера:", data);
+        updateOrderTable(data.orders);
+        if (isBestMatchActive) {
+          findBestMatchOrders();
+        }
+      });
+    }
+
+    function updateNotificationBadge() {
+      const badge = document.getElementById("notificationBadge");
+      if (notificationCount > 0) {
+        badge.style.display = "inline-block";
+        badge.textContent = notificationCount;
+      } else {
+        badge.style.display = "none";
+      }
+    }
+
+    function loadOfflineNotifications() {
+      const userId = localStorage.getItem("user_id");
+      if (!userId) return;
+      fetch("http://localhost:5000/api/get_notifications?user_id=" + userId)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "ok" && data.notifications.length > 0) {
+            data.notifications.forEach(notif => {
+              notifications.push(notif.message);
+            });
+            notificationCount = notifications.length;
+            updateNotificationBadge();
+          }
+        })
+        .catch(error => console.error("Ошибка загрузки уведомлений:", error));
+    }
+
+    function showNotificationPopup() {
+      const popup = document.getElementById("notificationPopup");
+      const listElem = document.getElementById("notificationList");
+      listElem.innerHTML = "";
+      notifications.forEach(msg => {
+        const li = document.createElement("li");
+        li.textContent = msg;
+        listElem.appendChild(li);
+      });
+      popup.classList.remove("hidden");
+    }
+
+    document.getElementById("notificationBell").addEventListener("click", function() {
+      showNotificationPopup();
+    });
+
+    document.getElementById("clearNotifications").addEventListener("click", function() {
+      const userId = localStorage.getItem("user_id");
+      fetch("http://localhost:5000/api/mark_notifications_read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "ok") {
+          notifications = [];
+          notificationCount = 0;
+          updateNotificationBadge();
+          document.getElementById("notificationPopup").classList.add("hidden");
+        }
+      })
+      .catch(error => console.error("Ошибка очистки уведомлений:", error));
+    });
+
+    function updateOrderTable(orders) {
+      const buyTableBody = document.getElementById("buy-table-body");
+      const sellTableBody = document.getElementById("sell-table-body");
+      buyTableBody.innerHTML = "";
+      sellTableBody.innerHTML = "";
+      orders.forEach(order => {
+        const row = document.createElement("tr");
+        const traderCell = document.createElement("td");
+        traderCell.textContent = order.trader;
+        row.appendChild(traderCell);
+        const priceCell = document.createElement("td");
+        priceCell.textContent = order.price;
+        row.appendChild(priceCell);
+        const amountCell = document.createElement("td");
+        amountCell.textContent = order.amount;
+        row.appendChild(amountCell);
+        const actionCell = document.createElement("td");
+        const actionButton = document.createElement("button");
+        actionButton.textContent = order.type === "buy" ? "Buy" : "Sell";
+        actionButton.onclick = () => openModal(order);
+        actionCell.appendChild(actionButton);
+        row.appendChild(actionCell);
+        if (order.type === "buy") {
+          buyTableBody.appendChild(row);
+        } else if (order.type === "sell") {
+          sellTableBody.appendChild(row);
+        }
+      });
+    }
+
+    document.getElementById("buy-tab-btn").addEventListener("click", function() {
+      currentTab = "buy";
+      document.getElementById("buy-table").classList.remove("hidden");
+      document.getElementById("sell-table").classList.add("hidden");
+    });
+    document.getElementById("sell-tab-btn").addEventListener("click", function() {
+      currentTab = "sell";
+      document.getElementById("sell-table").classList.remove("hidden");
+      document.getElementById("buy-table").classList.add("hidden");
+    });
+
+    function openModal(order) {
+      document.getElementById("modal-price").textContent = order.price;
+      document.getElementById("modal-amount").textContent = order.amount;
+      document.getElementById("modal-balance").textContent = document.getElementById("forevers-balance").textContent;
+      document.getElementById("order-modal").style.display = "block";
+      document.getElementById("confirm-order").onclick = function() {
+        const quantity = document.getElementById("quantity").value;
+        order.amount = quantity;
+        confirmOrders([order]);
+      };
+      document.getElementById("close-modal").onclick = function() {
+        document.getElementById("order-modal").style.display = "none";
+      };
+    }
+
+    async function confirmOrders(ordersArray) {
+      const userId = localStorage.getItem("user_id");
+      const userBalance = document.getElementById("forevers-balance").textContent;
+      const ordersData = ordersArray.map(order => ({
+        order_id: order.order_id,
+        type: order.type,
+        price: order.price,
+        amount: order.amount,
+        userBalance: userBalance
+      }));
+      const payload = { orders: ordersData, user_id: userId };
+      try {
+        const response = await fetch("http://localhost:5000/api/execute_order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Ошибка выполнения ордеров: ${response.statusText} - ${errorText}`);
+        }
+        const responseData = await response.json();
+        if (responseData.status === "success") {
+          console.log("✅ Ордеры выполнены успешно!");
+          const balanceResponse = await fetch(`http://localhost:5000/api/get_balance?user_id=${userId}`, { method: 'GET' });
+          if (!balanceResponse.ok) throw new Error('Не удалось получить баланс');
+          const balanceData = await balanceResponse.json();
+          if (balanceData.status === "success") {
+            document.getElementById("amount-balance").textContent = balanceData.amount;
+            document.getElementById("forevers-balance").textContent = balanceData.forevers;
+            console.log("💰 Баланс обновлён!");
+          } else {
+            console.warn("⚠ Не удалось обновить баланс:", balanceData.message);
+          }
+          document.getElementById("buy-forevers-modal").style.display = "none";
+          isBestMatchActive = false;
+        } else {
+          throw new Error(responseData.message || "Ошибка при выполнении ордеров");
+        }
+      } catch (error) {
+        console.error("❌ Ошибка при подтверждении ордеров:", error.message);
+        alert("Ошибка: " + error.message);
+      }
+    }
+
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      fetch("http://localhost:5000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "success") {
+          localStorage.setItem("user_id", data.user_id);
+          document.getElementById("auth-section").classList.add("hidden");
+          document.getElementById("orders-section").classList.remove("hidden");
+          document.getElementById("forevers-balance").textContent = data.forevers;
+          document.getElementById("amount-balance").textContent = data.amount;
+          connectSocket();
+        } else {
+          alert("Ошибка входа");
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка при входе:', error);
+      });
+    }
+
+    function register() {
+      const email = document.getElementById("email").value;
+      const fullname = document.getElementById("fullname").value;
+      const password = document.getElementById("password").value;
+      fetch("http://localhost:5000/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, fullname, password })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "success") {
+          localStorage.setItem("user_id", data.user_id);
+          document.getElementById("auth-section").classList.add("hidden");
+          document.getElementById("orders-section").classList.remove("hidden");
+          document.getElementById("forevers-balance").textContent = data.forevers;
+          document.getElementById("amount-balance").textContent = data.amount;
+        } else {
+          alert("Ошибка регистрации");
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка при регистрации:', error);
+      });
+    }
+
+    document.getElementById("create-order-btn").addEventListener("click", function() {
+      document.getElementById("trader-name").value = localStorage.getItem("user_id");
+      document.getElementById("create-order-modal").style.display = "block";
+    });
+
+    document.getElementById("close-create-modal").addEventListener("click", function() {
+      document.getElementById("create-order-modal").style.display = "none";
+    });
+
+    document.getElementById("submit-order").addEventListener("click", async function() {
+    const userId = localStorage.getItem("user_id");
+    const orderType = document.getElementById("order-type").value;
+
+    if (!orderType) {
+      alert("Please select a valid order type.");
+      return;
+    }
+
+    try {
+      // Запрос к серверу для получения full_name пользователя
+      const userResponse = await fetch(`http://localhost:5000/api/users/${userId}`);
+      const userData = await userResponse.json();
+      if (!userResponse.ok) {
+        throw new Error(userData.message || "Ошибка получения пользователя");
+      }
+
+      const orderData = {
+        trader_name: userData.full_name,  // Используем full_name вместо userId
+        type: orderType,
+        amount: document.getElementById("order-quantity").value,
+        price: document.getElementById("order-price").value,
+        user_id: userId
+      };
+
+      // Отправка ордера
+      const response = await fetch("http://localhost:5000/api/add_order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData)
+      });
+
+      const data = await response.json();
+
+      if (data.status === "success") {
+        alert("Ордер успешно создан!");
+        document.getElementById("create-order-modal").style.display = "none";
+      } else {
+        alert("Ошибка: " + data.message);
+      }
+    } catch (error) {
+      console.error("Ошибка создания ордера:", error);
+      alert("Ошибка соединения с сервером.");
+    }
+  });
+
+    document.getElementById("cancel-order-btn").addEventListener("click", async function() {
+      const userId = localStorage.getItem("user_id");
+      try {
+        const cancelResponse = await fetch("http://localhost:5000/api/cancel_order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId })
+        });
+        const cancelData = await cancelResponse.json();
+        if (cancelData.status === "success") {
+          alert("Ордер успешно отменён!");
+        } else {
+          alert("Ошибка: " + cancelData.message);
+        }
+      } catch (error) {
+        console.error("Ошибка при отмене ордера:", error);
+        alert("Ошибка соединения с сервером.");
+      }
+    });
+
+    // Реализация поиска Best Match
+    document.getElementById("find-orders-btn").addEventListener("click", () => {
+      isBestMatchActive = true;
+      findBestMatchOrders();
+    });
+
+    function findBestMatchOrders() {
+      const userId = localStorage.getItem("user_id");
+      const quantity = document.getElementById("find-amount").value;
+      if (!quantity || quantity <= 0) {
+        alert("Введите корректное количество forevers");
+        return;
+      }
+      fetch("http://localhost:5000/api/find_best_orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: currentTab, quantity: quantity, user_id: userId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        bestMatchResponse = data;
+        // Показываем блок Best Match
+        document.getElementById("best-match-container").classList.remove("hidden");
+        renderBestMatch(data);
+      })
+      .catch(error => {
+        console.error("Ошибка поиска лучших ордеров:", error);
+        document.getElementById("best-match-container").innerHTML = "<p>Ошибка поиска лучших ордеров.</p>";
+      });
+    }
+
+    function renderBestMatch(data) {
+      const container = document.getElementById("best-match-container");
+      container.innerHTML = "";
+      if (data.error) {
+        container.innerHTML = `<p>${data.error}. Доступно: ${data.available}</p>`;
+        return;
+      }
+      let headerText = currentTab === "buy" 
+        ? `Лучшие предложения для покупки. Средняя цена: ${data.average_price}. Общая сумма к оплате: ${data.total_to_pay}` 
+        : `Лучшие предложения для продажи. Средняя цена: ${data.average_price}. Общая сумма к получению: ${data.total_to_receive}`;
+      const infoDiv = document.createElement("div");
+      infoDiv.className = "header";
+      infoDiv.style.marginBottom = "5px";
+      infoDiv.textContent = headerText;
+      container.appendChild(infoDiv);
+      const table = document.createElement("table");
+      table.style.width = "100%";
+      table.style.borderCollapse = "collapse";
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      ["Trader", "Price", "Amount", "Action"].forEach(text => {
+        const th = document.createElement("th");
+        th.textContent = text;
+        th.style.padding = "8px";
+        th.style.border = "1px solid #ccc";
+        th.style.backgroundColor = "#f2f2f2";
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      const tbody = document.createElement("tbody");
+      data.orders.forEach(order => {
+        const row = document.createElement("tr");
+        const traderCell = document.createElement("td");
+        traderCell.textContent = order.trader;
+        traderCell.style.padding = "8px";
+        traderCell.style.border = "1px solid #ccc";
+        row.appendChild(traderCell);
+        const priceCell = document.createElement("td");
+        priceCell.textContent = order.price;
+        priceCell.style.padding = "8px";
+        priceCell.style.border = "1px solid #ccc";
+        row.appendChild(priceCell);
+        const amountCell = document.createElement("td");
+        amountCell.textContent = order.amount;
+        amountCell.style.padding = "8px";
+        amountCell.style.border = "1px solid #ccc";
+        row.appendChild(amountCell);
+        const actionCell = document.createElement("td");
+        actionCell.style.padding = "8px";
+        actionCell.style.border = "1px solid #ccc";
+        const actionButton = document.createElement("button");
+        actionButton.textContent = currentTab === "buy" ? "Buy" : "Sell";
+        actionButton.onclick = () => openModal(order);
+        actionCell.appendChild(actionButton);
+        row.appendChild(actionCell);
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
+    // Обработчик для кнопки Reset Best Match
+    document.getElementById("reset-orders-btn").addEventListener("click", () => {
+      fetch("http://localhost:5000/api/reset_best_matches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      })
+      .then(response => response.json())
+      .then(data => {
+        bestMatchResponse = data;
+        const container = document.getElementById("best-match-container");
+        container.innerHTML = "";
+        container.classList.add("hidden");
+        isBestMatchActive = false;
+      })
+      .catch(error => {
+        console.error("Ошибка сброса Best Matches:", error);
+      });
+    });
+
+    // Реализация Buy Forevers
+    document.getElementById("buy-forevers-btn").addEventListener("click", openBuyForeversModal);
+
+    function openBuyForeversModal() {
+      if (!bestMatchResponse || !bestMatchResponse.orders || bestMatchResponse.orders.length === 0) {
+        alert("Нет выбранных ордеров для покупки.");
+        return;
+      }
+      const container = document.getElementById("buy-forevers-content");
+      let html = `<div class="header">Подтверждение покупки Forevers</div>`;
+      html += `<div class="order-list">`;
+      bestMatchResponse.orders.forEach(order => {
+        html += `<div class="order-item">
+                    <span class="trader">${order.trader}</span>
+                    <span class="price">${order.price}</span>
+                    <span class="amount">${order.amount}</span>
+                 </div>`;
+      });
+      html += `</div>`;
+      const totalText = currentTab === "buy" ? `Итого к оплате: ${bestMatchResponse.total_to_pay}` : `Итого к получению: ${bestMatchResponse.total_to_receive}`;
+      html += `<p>${totalText}</p>`;
+      container.innerHTML = html;
+      document.getElementById("buy-forevers-modal").style.display = "block";
+    }
+
+    document.getElementById("close-buy-forevers-modal").addEventListener("click", function() {
+      document.getElementById("buy-forevers-modal").style.display = "none";
+    });
+
+    document.getElementById("confirm-buy-forevers").addEventListener("click", async function() {
+      const userId = localStorage.getItem("user_id");
+      if (!userId) {
+        alert("Пользователь не авторизован.");
+        return;
+      }
+      const userBalance = document.getElementById("forevers-balance").textContent;
+      const ordersData = bestMatchResponse.orders.map(order => ({
+        order_id: order.order_id,
+        type: currentTab === "buy" ? "buy" : "sell",
+        price: order.price,
+        amount: order.amount,
+        userBalance: userBalance
+      }));
+      const payload = { orders: ordersData, user_id: userId };
+      try {
+        const response = await fetch("http://localhost:5000/api/execute_order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (data.status === "success") {
+          alert("Покупка выполнена успешно!");
+          document.getElementById("buy-forevers-modal").style.display = "none";
+          isBestMatchActive = false;
+        } else {
+          alert("Ошибка: " + data.message);
+        }
+      } catch (error) {
+        console.error("Ошибка при выполнении покупки:", error);
+        alert("Ошибка соединения с сервером.");
+      }
+    });
+  </script>
+</body>
+</html>

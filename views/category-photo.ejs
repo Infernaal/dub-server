@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Завантаження фотографій</title>
+    <style>
+        /* Стилі для великого текстового поля */
+        #imageUrls {
+            width: 100%;        /* Розтягуємо поле на всю ширину контейнера */
+            height: 300px;      /* Висота текстового поля */
+            font-size: 10px;    /* Розмір шрифта */
+            padding: 10px;      /* Відступи всередині */
+            box-sizing: border-box; /* Для правильного врахування padding */
+            resize: vertical;   /* Дозволяє змінювати висоту поля вручну */
+            line-height: 1.6;    /* Відстань між рядками */
+        }
+    </style>
+    <script>
+        async function uploadImages() {
+            // Отримуємо введені URL
+            const imageUrlsInput = document.getElementById("imageUrls").value;
+            const imageUrls = imageUrlsInput.split(",").map(url => url.trim()).filter(url => url !== "");
+
+            if (imageUrls.length === 0) {
+                alert("Будь ласка, введіть хоча б один URL зображення.");
+                return;
+            }
+
+            try {
+                // Відправляємо дані на сервер
+                const response = await fetch("http://localhost:5000/category-photo", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ gallery: imageUrls })
+                });
+
+                const result = await response.json();
+
+                // Виводимо результат
+                if (response.ok) {
+                    let output = "<h3>Результати категоризації:</h3>";
+                    for (const category in result) {
+                        output += `<h4>${category}:</h4><ul>`;
+                        result[category].forEach(image => {
+                            output += `<li><img src="${image}" alt="${category}" width="200px"></li>`;
+                        });
+                        output += `</ul>`;
+                    }
+                    document.getElementById("result").innerHTML = output;
+                } else {
+                    alert("Сталася помилка при обробці зображень.");
+                }
+            } catch (error) {
+                console.error("Помилка при відправці запиту:", error);
+                alert("Сталася помилка при зв'язку з сервером.");
+            }
+        }
+    </script>
+</head>
+<body>
+    <h2>Завантаження фотографій для категоризації</h2>
+    <p>Введіть URL зображень, розділені комами:</p>
+    <textarea id="imageUrls" placeholder="http://example.com/photo1.jpg, http://example.com/photo2.jpg"></textarea>
+    <button onclick="uploadImages()">Відправити</button>
+
+    <div id="result"></div>
+</body>
+</html>

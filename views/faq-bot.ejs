@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html id="html-tag">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dubadu Chat Widget</title>
+  <script src="https://cdn.botframework.com/botframework-webchat/latest/webchat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    #chat-button {
+      position: fixed; bottom: 20px; right: 20px;
+      background-color: #f77b00; color: white; border: none;
+      border-radius: 50%; width: 60px; height: 60px;
+      display: flex; justify-content: center; align-items: center;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+      cursor: pointer; font-size: 30px; z-index: 1000;
+    }
+    #chat-container {
+      position: fixed; bottom: 20px; right: 20px;
+      width: 350px; height: 500px; border-radius: 15px;
+      overflow: hidden; background-color: #1c1c1e;
+      border: 2px solid #f77b00; display: none;
+      flex-direction: column; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+      z-index: 999;
+    }
+    #chat-header { background-color: #f77b00; color: white; padding: 10px; text-align: center; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
+    #close-btn { background: none; border: none; color: white; font-size: 16px; cursor: pointer; }
+    #chat-messages { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 10px; }
+    #webchat-container { flex: 1; width: 100%; height: 100%; display: flex; }
+    .language-btn { padding: 8px 12px; margin: 5px; border: none; cursor: pointer; border-radius: 5px; background-color: #f77b00; color: white; }
+  </style>
+</head>
+<body>
+  <button id="chat-button">💬</button>
+  <div id="chat-container">
+    <div id="chat-header">
+      Dubadu AI Chat
+      <button id="close-btn">✖</button>
+    </div>
+    <div id="chat-messages">
+      <p style="color: white; text-align: center;">Hello and welcome! Please select your language:</p>
+      <div style="text-align: center;">
+        <button class="language-btn" data-lang="en">English</button>
+        <button class="language-btn" data-lang="ru">Русский</button>
+        <button class="language-btn" data-lang="ar">العربية</button>
+        <button class="language-btn" data-lang="es">Español</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const languageMap = {
+      "en": "English", "ru": "Русский", "ar": "العربية", "es": "Español"
+    };
+    let selectedLanguage = "en";
+    let directLine;
+
+    async function initializeChat(lang) {
+      const chatMessages = document.getElementById('chat-messages');
+      chatMessages.innerHTML = ''; // Очищаем только при выборе языка
+
+      if (directLine) directLine.end();
+
+      const res = await fetch('https://default63d48d4579044c36b163ed14a30122.b8.environment.api.powerplatform.com/powervirtualagents/botsbyschema/creeb_dubaduFaqHelper/directline/token?api-version=2022-03-01-preview');
+      const { token } = await res.json();
+      directLine = window.WebChat.createDirectLine({ token });
+
+      const webchatContainer = document.createElement('div');
+      webchatContainer.id = 'webchat-container';
+      chatMessages.appendChild(webchatContainer);
+
+      window.WebChat.renderWebChat(
+        {
+          directLine,
+          locale: lang,
+          styleOptions: {
+            bubbleBackground: '#2c2c2e',
+            bubbleTextColor: 'white',
+            bubbleBorderRadius: 10,
+            bubbleFromUserBackground: '#f77b00',
+            bubbleFromUserTextColor: 'white',
+            hideUploadButton: true,
+            timestampColor: '#f77b00',
+            showTypingIndicator: true
+          },
+          activityMiddleware: () => (next) => (args) => {
+            if (args.activity.type === 'typing') args.activity.from.role = 'bot';
+            if (args.activity.type === 'message' && args.activity.from.role === 'bot') {
+              let text = args.activity.text;
+              text = text.replace(/^\s*\[\d+\]:.*$/gm, '');
+              text = text.replace(/\[\d+\](?:\u200B|\s)*/g, '');
+              text = text.replace(/faq:\d+/gi, '');
+              text = text.replace(/\s+/g, ' ').trim();
+              args.activity.text = text;
+            }
+            return next(args);
+          }
+        },
+        webchatContainer
+      );
+
+      directLine.postActivity({
+        from: { id: 'user' },
+        type: 'event',
+        name: 'startConversation',
+        locale: lang,
+        value: { language: lang } // ✅ Передаём язык боту
+      }).subscribe();
+    }
+
+    document.querySelectorAll('.language-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        selectedLanguage = this.getAttribute('data-lang');
+        initializeChat(selectedLanguage);
+      });
+    });
+
+    document.getElementById('chat-button').addEventListener('click', function() {
+      document.getElementById('chat-container').style.display = 'flex';
+      this.style.display = 'none'; // ✅ Скрываем кнопку чата при открытии
+    });
+
+    document.getElementById('close-btn').addEventListener('click', function() {
+      document.getElementById('chat-container').style.display = 'none';
+      document.getElementById('chat-button').style.display = 'flex'; // ✅ Показываем кнопку чата при закрытии
+      document.getElementById('chat-messages').innerHTML = `
+        <p style="color: white; text-align: center;">Hello and welcome! Please select your language:</p>
+        <div style="text-align: center;">
+          <button class="language-btn" data-lang="en">English</button>
+          <button class="language-btn" data-lang="ru">Русский</button>
+          <button class="language-btn" data-lang="ar">العربية</button>
+          <button class="language-btn" data-lang="es">Español</button>
+        </div>`;
+      document.querySelectorAll('.language-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          selectedLanguage = this.getAttribute('data-lang');
+          initializeChat(selectedLanguage);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

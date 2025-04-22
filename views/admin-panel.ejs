@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard</title>
+  <!-- Подключаем Font Awesome через CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <style>
+    /* Общие стили для тёмной темы */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #1E1E1E;
+      color: #ffffff;
+    }
+    /* Контейнер всей страницы */
+    .dashboard-container {
+      display: flex;
+      height: 100vh;
+    }
+    /* Боковое меню */
+    .sidebar {
+      width: 250px;
+      background-color: #242424;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar .logo {
+      text-align: center;
+      padding: 15px 0;
+      background-color: #2E2E2E;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .sidebar .menu {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .sidebar .menu a {
+      display: block;
+      color: #ffffff;
+      text-decoration: none;
+      padding: 12px 20px;
+      transition: background 0.3s;
+    }
+    .sidebar .menu a i {
+      margin-right: 10px;
+      font-size: 1rem;
+    }
+    .sidebar .menu a:hover {
+      background-color: #333333;
+    }
+    .sidebar .menu .menu-item {
+      margin-bottom: 5px;
+    }
+    .sidebar .logout {
+      text-align: center;
+      padding: 10px;
+      background-color: #2E2E2E;
+    }
+    .sidebar .logout a {
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s;
+    }
+    .sidebar .logout a:hover {
+      color: #cccccc;
+    }
+    /* Основной контент */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: #1E1E1E;
+    }
+    /* Верхняя панель */
+    .topbar {
+      height: 50px;
+      background-color: #2E2E2E;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 15px;
+    }
+    .topbar .title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+    }
+    .topbar .title i {
+      margin-right: 8px;
+      font-size: 1.1rem;
+    }
+    .topbar .user-info {
+      display: flex;
+      align-items: center;
+    }
+    .topbar .user-info img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .topbar .user-info .username {
+      font-weight: 500;
+    }
+    /* Контент */
+    .content {
+      padding: 10px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    /* Статистика (карточки) */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(520px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    .stats-card {
+      background-color: #2A2A2A;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .stats-card .icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      color: #f0f0f0;
+    }
+    .stats-card h2 {
+      margin: 0;
+      font-size: 1.6rem;
+      margin-bottom: 5px;
+    }
+    .stats-card p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #bbbbbb;
+    }
+    /* Секции с таблицами */
+    .transactions, .orders, .activity, .bots, .bot-orders, .blocked-users, .order-history {
+      background-color: #2A2A2A;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .transactions h3, .orders h3, .activity h3, .bots h3, .bot-orders h3, .blocked-users h3, .order-history h3 {
+      margin: 0 0 10px 0;
+      font-size: 1.2rem;
+    }
+    .transactions table, .orders table, .activity table, .bots table, .bot-orders table, .blocked-users table, .order-history table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .transactions table th, 
+    .transactions table td,
+    .orders table th,
+    .orders table td,
+    .activity table th,
+    .activity table td,
+    .bots table th,
+    .bots table td,
+    .bot-orders table th,
+    .bot-orders table td,
+    .blocked-users table th,
+    .blocked-users table td,
+    .order-history table th,
+    .order-history table td {
+      padding: 8px;
+      border-bottom: 1px solid #444;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .transactions table th, .orders table th, .activity table th, .bots table th, .bot-orders table th, .blocked-users table th, .order-history table th{
+      background-color: #333;
+    }
+    /* Pagination controls */
+    #pagination-controls, #orders-pagination-controls, #activity-pagination-controls, #bot-orders-pagination-controls, #all-bots-pagination-controls, #blocked-users-pagination-controls, #order-history-pagination-controls {
+      text-align: center;
+      margin-top: 10px;
+    }
+    #pagination-controls button, #orders-pagination-controls button, #activity-pagination-controls button, #bot-orders-pagination-controls button, #all-bots-pagination-controls button, #blocked-users-pagination-controls button, #order-history-pagination-controls button {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.2rem;
+      cursor: pointer;
+      margin: 0 10px;
+    }
+    button:hover {
+      transform: translateY(2px);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+  
+    button:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+    }
+
+    .blocked-users button.cancel-btn, .bot-orders button.del-bot-order-btn, .bots button.del-bot-btn {
+      padding: 4px 10px;
+      background-color: #d9534f;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s ease-in-out;
+    }
+
+    .blocked-users button.cancel-btn:hover, .bot-orders button.del-bot-order-btn:hover, .bots button.del-bot-btn:hover {
+      background-color: #c9302c;
+    }
+
+    .menu {
+      padding: 0 10px;
+    }
+
+    .menu-group {
+      margin-bottom: 20px;
+    }
+
+    .menu-group summary {
+      text-align: center;
+      color: #fff;
+      font-size: 1rem;
+      padding: 10px 0;
+      cursor: pointer;
+      border-bottom: 1px solid #444;
+      margin: 0 20px 10px;
+    }
+
+    /* Убираем маркер по умолчанию в summary для Chrome */
+    .menu-group summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .menu-item a {
+      color: #fff;
+      text-decoration: none;
+      padding: 10px 20px;
+      display: block;
+      transition: background 0.3s;
+    }
+
+    .menu-item a:hover {
+      background-color: #333;
+    }
+
+  </style>
+</head>
+<body>
+  <!-- Контейнер формы логина -->
+  <div id="login-container" style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #1E1E1E;">
+    <form id="login-form" style="background-color: #2E2A2A; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); width: 100%; max-width: 400px; text-align: center;">
+      <img src="logo.png" alt="Logo" style="width: 200px; height: 100px; margin-bottom: 20px;" />
+      <h2 style="color: #fff; font-family: Arial, sans-serif; font-size: 24px; margin-bottom: 20px;">Admin Panel</h2>
+      <div style="margin-bottom: 20px;">
+        <label style="font-weight: bold; color: #fff; font-family: Arial, sans-serif; display: block; text-align: left;">Email</label>
+        <input type="email" id="email" required style="width: 100%; padding: 10px; background-color: #3A3A3A; color: #fff; border: 1px solid #555; border-radius: 6px; font-family: Arial, sans-serif; outline: none; text-align: center;" />
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label style="font-weight: bold; color: #fff; font-family: Arial, sans-serif; display: block; text-align: left;">Password</label>
+        <input type="password" id="password" required style="width: 100%; padding: 10px; background-color: #3A3A3A; color: #fff; border: 1px solid #555; border-radius: 6px; font-family: Arial, sans-serif; outline: none; text-align: center;" />
+      </div>
+      <div style="display: flex; justify-content: center;">
+        <button type="submit" style="width: 100%; margin-left: 1rem; max-width: 400px; padding: 12px; background-color: #5A5A5A; color: #fff; border: none; border-radius: 8px; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;">
+          Login
+        </button>
+      </div>
+    </form>
+  </div>
+  <div class="dashboard-container" style="display: none;">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <img class="logo" src="/logo.png" alt="Logo" />
+      <div class="menu">
+        <!-- General Management Group -->
+        <details class="menu-group" open>
+          <summary>General Management</summary>
+          <div class="menu-item">
+            <a href="#" id="transactions-link"><i class="fas fa-exchange-alt"></i> Transaction History</a>
+          </div>
+          <div class="menu-item">
+            <a href="#" id="order-history-link"><i class="fas fa-indent"></i> Order History</a>
+          </div>
+          <div class="menu-item">
+            <a href="#" id="orders-link"><i class="fas fa-shopping-cart"></i> Available Orders</a>
+          </div>
+          <div class="menu-item">
+            <a href="#" id="activity-link"><i class="fas fa-flag"></i> User Activity</a>
+          </div>
+          <div class="menu-item">
+            <a href="#" id="blocked-users-link"><i class="fas fa-minus-circle"></i> Blocked Users</a>
+          </div>
+        </details>
+    
+        <!-- Bots Management Group -->
+        <details class="menu-group" open>
+          <summary>Bots Management</summary>
+          <div class="menu-item">
+            <a href="#" id="create-bot-link"><i class="fas fa-cogs"></i> Create Bot</a>
+          </div>
+          <div class="menu-item">
+            <a href="#" id="all-bots-link"><i class="fas fa-users"></i> All Bots</a>
+          </div>
+          <div class="menu-item">
+            <a href="#" id="create-orders-link"><i class="fas fa-wrench"></i> Create Bot Orders</a>
+          </div>
+          <div class="menu-item">
+            <a href="#" id="bot-orders-link"><i class="fas fa-cloud"></i> Bot Orders</a>
+          </div>
+        </details>
+      </div>
+      <div class="logout">
+        <a href="#"><i class="fas fa-sign-out-alt"></i> Log out</a>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Topbar -->
+      <div class="topbar">
+        <div class="title">
+          <i class="fas fa-chart-line"></i> Dashboard
+        </div>
+        <div class="user-info">
+          <img src="/dubadu.svg" alt="User" />
+          <div class="username">Alex Senthil</div>
+        </div>
+      </div>
+      <!-- Content -->
+      <div class="content">
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+          <div class="stats-card">
+            <div class="icon"><i class="fas fa-coins"></i></div>
+            <h2 id="volume-buy">0</h2>
+            <p>Volume Buy</p>
+          </div>
+          <div class="stats-card">
+            <div class="icon"><i class="fas fa-coins"></i></div>
+            <h2 id="volume-sell">0</h2>
+            <p>Volume Sell</p>
+          </div>
+          <div class="stats-card">
+            <div class="icon"><i class="fas fa-user-friends"></i></div>
+            <h2 id="total-trades">0</h2>
+            <p>Total Trades</p>
+          </div>
+        </div>
+        <!-- Transaction History Section (visible by default) -->
+        <div id="transactions-section" class="transactions">
+          <h3>Transaction History</h3>
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="order_id">Order ID <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="price">Price <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="amount">Amount <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="type">Type <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="buyer">Buyer <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="seller">Seller <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="timestamp">Date <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+              </tr>
+            </thead>
+            <tbody id="transaction-list">
+              <!-- Transactions will be loaded via Socket.IO or HTTP fallback -->
+            </tbody>
+          </table>
+          <div id="pagination-controls"></div>
+        </div>
+
+        <!-- Order History Section (hidden by default) -->
+        <div id="order-history-section" class="order-history" style="display: none;">
+          <h3>Order History</h3>
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="order_id">Order ID <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="user_id">User ID <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="trader_name">Trader Name <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="price">Price <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="amount">Amount <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="order_type">Order Type <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="status">Status <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="created_at">Created At <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="executed_at">Executed At <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="ip_address">IP Address <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="device_info">Device Info <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+              </tr>
+            </thead>
+            <tbody id="order-history-list">
+              <!-- Order history records will be loaded via API -->
+            </tbody>
+          </table>
+          <div id="order-history-pagination-controls"></div>
+        </div>
+
+        <!-- Orders Section (hidden by default) -->
+        <div id="orders-section" class="orders" style="display: none;">
+          <h3>Available Orders</h3>
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="order_id">Order ID <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="trader">Trader Name <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="amount">Amount <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="price">Price <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="type">Type <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="timestamp">Date <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="ip_address">IP Address <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="device_info">Device Info <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+              </tr>
+            </thead>
+            <tbody id="orders-list">
+              <!-- Orders will be loaded via API -->
+            </tbody>
+          </table>
+          <div id="orders-pagination-controls"></div>
+        </div>
+
+        <!-- Activity Section (hidden by default) -->
+        <div id="activity-section" class="activity" style="display: none;">
+          <h3>User Activity</h3>
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="email">Email <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="suspicious_reasons">Suspicious Reasons <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="timestamp">Date <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+              </tr>
+            </thead>
+            <tbody id="activity-list">
+              <!-- Activity records will be loaded via API -->
+            </tbody>
+          </table>
+          <div id="activity-pagination-controls"></div>
+        </div>
+
+        <!-- Blocked Users Section (hidden by default) -->
+        <div id="blocked-users-section" class="blocked-users" style="display: none;">
+          <h3>Blocked Users</h3>
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="user_id">User ID <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="email">Email <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="full_name">Full Name <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="suspicious_reason">Suspicious Reason <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="suspended_from">Suspended From <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="suspended_until">Suspended Until <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="blocked-users-list">
+              <!-- Blocked users will be loaded via API -->
+            </tbody>
+          </table>
+          <div id="blocked-users-pagination-controls"></div>
+        </div>
+
+        <!-- Секция для All Bots -->
+        <div id="all-bots-section" class="bots" style="display: none;">
+          <h3 style="color: #fff;">All Bots</h3>
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="bot_id">Bot ID <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="bot_name">Bot Name <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="email">Email <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="amount">Amount <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="forevers">Forevers <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="ip_address">IP Address <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="all-bots-list">
+              <!-- Данные о ботах будут загружены через API -->
+            </tbody>
+          </table>
+          <div id="all-bots-pagination-controls"></div>
+        </div>
+
+        <!-- Секция для Bot Orders -->
+        <div id="bot-orders-section" class="bot-orders" style="display: none;">
+          <h3 style="color: #fff;">Bot Orders</h3>
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="order_id">Order ID <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="trader">Bot Name <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="amount">Amount <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="price">Price <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="type">Type <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="timestamp">Date <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="ip_address">IP Address <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th data-sort="device_info">Device Info <i class="sortable-icon fas fa-sort" style="cursor: pointer;"></i></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="bot-orders-list">
+              <!-- Данные о заказах ботов будут загружены через API -->
+            </tbody>
+          </table>
+          <div id="bot-orders-pagination-controls"></div>
+        </div>
+        <div id="create-bot-section" class="create-bot" style="display: none; background-color: #2A2A2A; padding: 30px; border-radius: 8px; margin: 20px auto; max-width: 600px;">
+          <h3 style="color: #fff; text-align: center; margin-bottom: 20px;">Create Bot</h3>
+          <form id="create-bot-form">
+            <div style="margin-bottom: 20px;">
+              <label style="color: #fff; display: block; text-align: left;">Email:</label>
+              <input type="email" id="bot-email" required style="width: 575px; padding: 12px; background-color: #3A3A3A; color: #fff; border: 1px solid #555; border-radius: 6px; outline: none;">
+            </div>
+            <div style="margin-bottom: 20px;">
+              <label style="color: #fff; display: block; text-align: left;">Full Name:</label>
+              <input type="text" id="bot-fullname" required style="width: 575px; padding: 12px; background-color: #3A3A3A; color: #fff; border: 1px solid #555; border-radius: 6px; outline: none;">
+            </div>
+            <div style="margin-bottom: 20px;">
+              <label style="color: #fff; display: block; text-align: left;">Password:</label>
+              <input type="password" id="bot-password" required style="width: 575px; padding: 12px; background-color: #3A3A3A; color: #fff; border: 1px solid #555; border-radius: 6px; outline: none;">
+            </div>
+            <div style="margin-bottom: 20px;">
+              <label style="color: #fff; display: block; text-align: left;">Amount:</label>
+              <input type="number" step="0.01" min="0" id="bot-amount" required style="width: 575px; padding: 12px; background-color: #3A3A3A; color: #fff; border: 1px solid #555; border-radius: 6px; outline: none;">
+            </div>
+            <div style="margin-bottom: 20px;">
+              <label style="color: #fff; display: block; text-align: left;">Forevers:</label>
+              <input type="text" id="bot-forevers" required style="width: 575px; padding: 12px; background-color: #3A3A3A; color: #fff; border: 1px solid #555; border-radius: 6px; outline: none;">
+            </div>
+            <div style="display: flex; justify-content: center;">
+              <button type="submit" style="width: 100%; padding: 14px; background-color: #5A5A5A; color: #fff; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer;">Create</button>
+            </div>
+          </form>
+        </div>
+        
+        <!-- Уведомление выводится сразу под формой -->
+        <div id="notification" style="display: none; width: 600px; margin: 20px auto 0; padding: 15px 20px; border-radius: 6px; font-size: 16px; color: #fff; text-align: center;">
+          <i id="notification-icon" class="" style="margin-right: 10px;"></i>
+          <span id="notification-message"></span>
+        </div>
+
+        <!-- Create Order Form -->
+        <div id="create-order-section" class="create-order" style="display: none; background-color: #2A2A2A; padding: 30px; border-radius: 8px; margin: 20px auto; max-width: 600px;">
+          <h3 style="color: #fff; text-align: center; margin-bottom: 20px;">Create Order</h3>
+          <form id="create-order-form">
+            <div style="margin-bottom: 20px;">
+              <label style="color: #fff; display: block; text-align: left;">Bot Name:</label>
+              <select id="order-botname" required style="width: 600px; padding: 12px; background-color: #3A3A3A; color: #fff; border: 1px solid #555; border-radius: 6px; outline: none;">
+                <option value="">Select Bot</option>
+              </select>
+            </div>
+            <div style="margin-bottom: 20px;">
+              <label style="color: #fff; display: block; text-align: left;">Price:</label>
+              <input type="number" step="0.01" min="0" id="order-price" required style="width: 575px; padding: 12px; background-color: #3A3A3A; color: #fff; border: 1px solid #555; border-radius: 6px; outline: none;">
+            </div>
+            <div style="margin-bottom: 20px;">
+              <label style="color: #fff; display: block; text-align: left;">Forevers:</label>
+              <input type="text" id="order-forevers" required style="width: 575px; padding: 12px; background-color: #3A3A3A; color: #fff; border: 1px solid #555; border-radius: 6px; outline: none;">
+            </div>
+            <div style="margin-bottom: 20px;">
+              <label style="color: #fff; display: block; text-align: left;">Type:</label>
+              <select id="order-type" required style="width: 600px; padding: 12px; background-color: #3A3A3A; color: #fff; border: 1px solid #555; border-radius: 6px; outline: none;">
+                <option value="buy">Buy</option>
+                <option value="sell">Sell</option>
+              </select>
+            </div>
+            <div style="display: flex; justify-content: center;">
+              <button type="submit" style="width: 100%; padding: 14px; background-color: #5A5A5A; color: #fff; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer;">Create</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Order Notification -->
+        <div id="order-notification" style="display: none; width: 600px; margin: 20px auto 0; padding: 15px 20px; border-radius: 6px; font-size: 16px; color: #fff; text-align: center;">
+          <i id="order-notification-icon" class="" style="margin-right: 10px;"></i>
+          <span id="order-notification-message"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Socket.IO Client Script -->
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      try {
+        const response = await fetch('http://localhost:5000/api/admin-login', {  // Обратите внимание на URL
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+        if (data.success) {
+          // Скрываем форму логина и отображаем админку
+          document.getElementById('login-container').style.display = 'none';
+          document.querySelector('.dashboard-container').style.display = 'flex';
+          // Обновляем имя администратора в topbar
+          document.querySelector('.topbar .username').textContent = data.admin_name;
+        } else {
+          alert('Login failed: ' + data.message);
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        alert('An error occurred during login.');
+      }
+    });
+
+    document.querySelector('.logout a').addEventListener('click', function(e) {
+      e.preventDefault();
+      // Скрываем дашборд
+      document.querySelector('.dashboard-container').style.display = 'none';
+      // Показываем форму логина
+      document.getElementById('login-container').style.display = 'flex';
+      // Очистка полей ввода email и password
+      document.getElementById('email').value = '';
+      document.getElementById('password').value = '';
+    });
+
+    async function unblockUser(userId) {
+    const result = await Swal.fire({
+        title: "Are you sure?",
+        text: "Do you really want to unblock this user?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#2c2c2c",
+        confirmButtonText: "Yes, unblock",
+        showClass: {
+            popup: 'animate__animated animate__fadeInDown'
+        },
+        hideClass: {
+            popup: 'animate__animated animate__fadeOutUp'
+        },
+        scrollbarPadding: false
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const response = await fetch('http://localhost:5000/api/unblock-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            Swal.fire({
+                title: "User Unblocked",
+                text: "The user has been successfully unblocked.",
+                icon: "success",
+                confirmButtonColor: "#28a745",
+                scrollbarPadding: false
+            });
+
+            // Update the UI
+            blockedUsersData = blockedUsersData.filter(user => user.user_id !== userId);
+            const blockedUsersConfig = tablesConfig.find(c => c.name === 'blockedUsers');
+            if (blockedUsersConfig) {
+              blockedUsersConfig.data = blockedUsersData;
+              blockedUsersConfig.currentPage = 1;
+              blockedUsersConfig.render();
+            }
+        } else {
+            Swal.fire({
+                title: "Error",
+                text: data.error || "An unknown error occurred.",
+                icon: "error",
+                scrollbarPadding: false
+            });
+        }
+    } catch (error) {
+        console.error("Error unblocking user:", error);
+        Swal.fire({
+            title: "Error",
+            text: "An error occurred while processing the request.",
+            icon: "error"
+        });
+    }
+  }
+
+  async function deleteBot(botId) {
+    const result = await Swal.fire({
+        title: "Are you sure?",
+        text: "Deleting this bot will also delete all its orders. Do you really want to proceed?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#2c2c2c",
+        confirmButtonText: "Yes, delete",
+        scrollbarPadding: false,
+        showClass: {
+            popup: 'animate__animated animate__fadeInDown'
+        },
+        hideClass: {
+            popup: 'animate__animated animate__fadeOutUp'
+        }
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const response = await fetch('http://localhost:5000/api/delete-bot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bot_id: botId })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            await Swal.fire({
+                title: "Bot Deleted",
+                text: "The bot and all its orders have been successfully deleted.",
+                icon: "success",
+                confirmButtonColor: "#28a745",
+                scrollbarPadding: false,
+                timer: 2000,
+                showConfirmButton: false
+            });
+            // Update the UI: remove the deleted bot from botsData and re-render the table
+            botsData = botsData.filter(bot => bot.bot_id !== botId);
+            const botsConfig = tablesConfig.find(c => c.name === 'allBots');
+            if (botsConfig) {
+              botsConfig.data = botsData;
+              botsConfig.currentPage = 1;
+              botsConfig.render();
+            }
+        } else {
+            Swal.fire({
+                title: "Error",
+                text: data.error || "An unknown error occurred.",
+                icon: "error",
+                scrollbarPadding: false
+            });
+        }
+    } catch (error) {
+        console.error("Error deleting bot:", error);
+        Swal.fire({
+            title: "Error",
+            text: "An error occurred while processing the request.",
+            icon: "error",
+            scrollbarPadding: false
+        });
+    }
+}
+
+  async function deleteBotOrder(orderId) {
+      const result = await Swal.fire({
+          title: "Are you sure?",
+          text: "Do you really want to delete this bot order?",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#2c2c2c",
+          confirmButtonText: "Yes, delete",
+          scrollbarPadding: false,
+          showClass: {
+              popup: 'animate__animated animate__fadeInDown'
+          },
+          hideClass: {
+              popup: 'animate__animated animate__fadeOutUp'
+          }
+      });
+
+      if (!result.isConfirmed) return;
+
+      try {
+          const response = await fetch('http://localhost:5000/api/delete-bot-order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ order_id: orderId })
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+              await Swal.fire({
+                  title: "Bot Order Deleted",
+                  text: "The bot order has been successfully deleted.",
+                  icon: "success",
+                  confirmButtonColor: "#28a745",
+                  scrollbarPadding: false,
+                  timer: 2000,
+                  showConfirmButton: false
+              });
+              // Update the UI: remove the deleted bot order and re-render
+              botOrdersData = botOrdersData.filter(order => order.order_id !== orderId);
+              const botOrdersConfig = tablesConfig.find(c => c.name === 'botOrders');
+              if (botOrdersConfig) {
+                botOrdersConfig.data = botOrdersData;
+                botOrdersConfig.currentPage = 1;
+                botOrdersConfig.render();
+              }
+          } else {
+              Swal.fire({
+                  title: "Error",
+                  text: data.error || "An unknown error occurred.",
+                  icon: "error",
+                  scrollbarPadding: false
+              });
+          }
+      } catch (error) {
+          console.error("Error deleting bot order:", error);
+          Swal.fire({
+              title: "Error",
+              text: "An error occurred while processing the request.",
+              icon: "error",
+              scrollbarPadding: false
+          });
+      }
+  }
+
+    // Global variables for transactions pagination
+    let transactionsData = [];
+    let currentPage = 1;
+    const itemsPerPage = 18;
+    
+    // Глобальные переменные для Order History
+    let orderHistoryData = [];  // Здесь будут храниться данные Order History
+    let orderHistoryCurrentPage = 1;
+    const orderHistoryItemsPerPage = 18;
+
+    // Global variables for orders pagination
+    let ordersData = [];
+    let ordersCurrentPage = 1;
+    const ordersItemsPerPage = 18;
+    
+    // Global variables for activity pagination
+    let activityData = [];
+    let activityCurrentPage = 1;
+    const activityItemsPerPage = 18;
+
+    // Global variables for All Bots pagination
+    let botsData = [];
+    let botsCurrentPage = 1;
+    const botsItemsPerPage = 18;
+
+    // Global variables for Bot Orders pagination
+    let botOrdersData = [];
+    let botOrdersCurrentPage = 1;
+    const botOrdersItemsPerPage = 18;
+        
+    // Global variables for Blocked Users pagination
+    let blockedUsersData = [];
+    let blockedUsersCurrentPage = 1;
+    const blockedUsersItemsPerPage = 18;
+
+    // Универсальная функция сортировки
+    function sortData(data, sortField, sortOrder = 'asc') {
+      return data.sort((a, b) => {
+        let valA = a[sortField],
+            valB = b[sortField];
+
+        // Попытаемся преобразовать в число
+        let numA = parseFloat(valA);
+        let numB = parseFloat(valB);
+
+        // Если оба значения можно преобразовать в число, используем числовое сравнение
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return sortOrder === 'asc' ? numA - numB : numB - numA;
+        }
+        
+        // Если значения – строки (или хотя бы одно из них не число), сравниваем как строки
+        if (typeof valA === 'string') {
+          valA = valA.toLowerCase();
+          valB = valB.toLowerCase();
+        }
+        
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    document.querySelectorAll('th i.sortable-icon').forEach(icon => {
+      icon.addEventListener('click', (event) => {
+        event.stopPropagation(); // предотвращает всплытие события, если нужно
+        const th = event.target.closest('th');
+        const field = th.getAttribute('data-sort');
+        
+        // Найдите конфигурацию таблицы, к которой принадлежит данный заголовок.
+        // Например, если используется универсальное решение с объектами в tablesConfig:
+        const tableContainer = th.closest('table').parentElement; // предполагаем, что родительский контейнер имеет id секции
+        const tableConfig = tablesConfig.find(config => config.container === tableContainer);
+        
+        if (tableConfig) {
+          // Изменяем направление сортировки: если уже сортируем по этому полю, меняем направление
+          if (tableConfig.currentSortField === field) {
+            tableConfig.currentSortOrder = tableConfig.currentSortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            tableConfig.currentSortField = field;
+            tableConfig.currentSortOrder = 'asc';
+          }
+          
+          // Обновляем класс иконки для отображения направления сортировки
+          // Например, сначала сбросить для всех иконок в этом заголовке:
+          th.querySelectorAll('i.sortable-icon').forEach(i => {
+            i.classList.remove('fa-sort-up', 'fa-sort-down');
+            i.classList.add('fa-sort');
+          });
+          // Затем установить нужную иконку:
+          if (tableConfig.currentSortOrder === 'asc') {
+            event.target.classList.remove('fa-sort');
+            event.target.classList.add('fa-sort-up');
+          } else {
+            event.target.classList.remove('fa-sort');
+            event.target.classList.add('fa-sort-down');
+          }
+          
+          // Перерисовываем таблицу
+          tableConfig.render();
+        }
+      });
+    });
+
+    // Пример универсальной конфигурации для всех таблиц
+    const tablesConfig = [
+      {
+        // Таблица транзакций (Transactions)
+        name: 'transactions',
+        container: document.getElementById('transactions-section'),
+        tableBody: document.getElementById('transaction-list'),
+        data: transactionsData, // глобальный массив (обновляется через socket/on HTTP)
+        currentSortField: '',
+        currentSortOrder: 'asc',
+        itemsPerPage: itemsPerPage, // например, глобальная переменная
+        currentPage: currentPage,  // тоже глобальная переменная для этой таблицы
+        render: function() {
+          let dataToRender = this.currentSortField
+            ? sortData([...this.data], this.currentSortField, this.currentSortOrder)
+            : [...this.data];
+          const start = (this.currentPage - 1) * this.itemsPerPage;
+          const end = start + this.itemsPerPage;
+          const pageData = dataToRender.slice(start, end);
+          this.tableBody.innerHTML = pageData.map(t => (
+            `<tr>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${t.order_id}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${t.price}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${t.amount}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${t.type}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${t.buyer}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${t.seller}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${t.timestamp}</td>
+            </tr>`
+          )).join('');
+          updatePaginationControls(this, 'pagination-controls');
+        }
+      },
+      {
+        // Таблица Order History
+        name: 'orderHistory',
+        container: document.getElementById('order-history-section'),
+        tableBody: document.getElementById('order-history-list'),
+        data: orderHistoryData,
+        currentSortField: '',
+        currentSortOrder: 'asc',
+        itemsPerPage: orderHistoryItemsPerPage,
+        currentPage: orderHistoryCurrentPage,
+        render: function() {
+          let dataToRender = this.currentSortField
+            ? sortData([...this.data], this.currentSortField, this.currentSortOrder)
+            : [...this.data];
+          const start = (this.currentPage - 1) * this.itemsPerPage;
+          const end = start + this.itemsPerPage;
+          const pageData = dataToRender.slice(start, end);
+          this.tableBody.innerHTML = pageData.map(order => (
+            `<tr>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${order.order_id}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${order.user_id}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${order.trader_name}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${order.price}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${order.amount}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${order.order_type}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${order.status}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${order.created_at}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${order.executed_at}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${order.ip_address}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${order.device_info}</td>
+            </tr>`
+          )).join('');
+          updatePaginationControls(this, 'order-history-pagination-controls');
+        }
+      },
+      {
+        // Таблица Orders
+        name: 'orders',
+        container: document.getElementById('orders-section'),
+        tableBody: document.getElementById('orders-list'),
+        data: ordersData,
+        currentSortField: '',
+        currentSortOrder: 'asc',
+        itemsPerPage: ordersItemsPerPage,
+        currentPage: ordersCurrentPage,
+        render: function() {
+          let dataToRender = this.currentSortField
+            ? sortData([...this.data], this.currentSortField, this.currentSortOrder)
+            : [...this.data];
+          const start = (this.currentPage - 1) * this.itemsPerPage;
+          const end = start + this.itemsPerPage;
+          const pageData = dataToRender.slice(start, end);
+          this.tableBody.innerHTML = pageData.map(o => (
+            `<tr>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.order_id}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.trader}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.amount}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.price}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.type}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.timestamp}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.ip_address}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.device_info}</td>
+            </tr>`
+          )).join('');
+          updatePaginationControls(this, 'orders-pagination-controls');
+        }
+      },
+      {
+        // Таблица User Activity
+        name: 'activity',
+        container: document.getElementById('activity-section'),
+        tableBody: document.getElementById('activity-list'),
+        data: activityData,
+        currentSortField: '',
+        currentSortOrder: 'asc',
+        itemsPerPage: activityItemsPerPage,
+        currentPage: activityCurrentPage,
+        render: function() {
+          let dataToRender = this.currentSortField
+            ? sortData([...this.data], this.currentSortField, this.currentSortOrder)
+            : [...this.data];
+          const start = (this.currentPage - 1) * this.itemsPerPage;
+          const end = start + this.itemsPerPage;
+          const pageData = dataToRender.slice(start, end);
+          this.tableBody.innerHTML = pageData.map(a => (
+            `<tr>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${a.email}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${a.suspicious_reasons}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${a.timestamp}</td>
+            </tr>`
+          )).join('');
+          updatePaginationControls(this, 'activity-pagination-controls');
+        }
+      },
+      {
+        // Таблица Blocked Users
+        name: 'blockedUsers',
+        container: document.getElementById('blocked-users-section'),
+        tableBody: document.getElementById('blocked-users-list'),
+        data: blockedUsersData,
+        currentSortField: '',
+        currentSortOrder: 'asc',
+        itemsPerPage: blockedUsersItemsPerPage,
+        currentPage: blockedUsersCurrentPage,
+        render: function() {
+          let dataToRender = this.currentSortField
+            ? sortData([...this.data], this.currentSortField, this.currentSortOrder)
+            : [...this.data];
+          const start = (this.currentPage - 1) * this.itemsPerPage;
+          const end = start + this.itemsPerPage;
+          const pageData = dataToRender.slice(start, end);
+          this.tableBody.innerHTML = pageData.map(user => (
+            `<tr>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${user.user_id}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${user.email}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${user.full_name}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${user.suspicious_reason}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${user.suspended_from}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${user.suspended_until}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">
+                <button class="cancel-btn" onclick="unblockUser('${user.user_id}')">Unblock User</button>
+              </td>
+            </tr>`
+          )).join('');
+          updatePaginationControls(this, 'blocked-users-pagination-controls');
+        }
+      },
+      {
+        // Таблица All Bots
+        name: 'allBots',
+        container: document.getElementById('all-bots-section'),
+        tableBody: document.getElementById('all-bots-list'),
+        data: botsData,
+        currentSortField: '',
+        currentSortOrder: 'asc',
+        itemsPerPage: botsItemsPerPage,
+        currentPage: botsCurrentPage,
+        render: function() {
+          let dataToRender = this.currentSortField
+            ? sortData([...this.data], this.currentSortField, this.currentSortOrder)
+            : [...this.data];
+          const start = (this.currentPage - 1) * this.itemsPerPage;
+          const end = start + this.itemsPerPage;
+          const pageData = dataToRender.slice(start, end);
+          this.tableBody.innerHTML = pageData.map(b => (
+            `<tr>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${b.bot_id}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${b.bot_name}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${b.email}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${b.amount}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${b.forevers}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${b.ip_address}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">
+                <button class="del-bot-btn" onclick="deleteBot('${b.bot_id}')">Delete Bot</button>
+              </td>
+            </tr>`
+          )).join('');
+          updatePaginationControls(this, 'all-bots-pagination-controls');
+        }
+      },
+      {
+        // Таблица Bot Orders
+        name: 'botOrders',
+        container: document.getElementById('bot-orders-section'),
+        tableBody: document.getElementById('bot-orders-list'),
+        data: botOrdersData,
+        currentSortField: '',
+        currentSortOrder: 'asc',
+        itemsPerPage: botOrdersItemsPerPage,
+        currentPage: botOrdersCurrentPage,
+        render: function() {
+          let dataToRender = this.currentSortField
+            ? sortData([...this.data], this.currentSortField, this.currentSortOrder)
+            : [...this.data];
+          const start = (this.currentPage - 1) * this.itemsPerPage;
+          const end = start + this.itemsPerPage;
+          const pageData = dataToRender.slice(start, end);
+          this.tableBody.innerHTML = pageData.map(o => (
+            `<tr>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.order_id}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.trader}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.amount}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.price}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.type}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.timestamp}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.ip_address}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">${o.device_info}</td>
+              <td style="padding: 8px; border-bottom: 1px solid #444;">
+                <button class="del-bot-order-btn" onclick="deleteBotOrder('${o.order_id}')">Delete Order</button>
+              </td>
+            </tr>`
+          )).join('');
+          updatePaginationControls(this, 'bot-orders-pagination-controls');
+        }
+      }
+    ];
+
+    // Универсальная функция обновления пагинации
+    function updatePaginationControls(config, paginationContainerId) {
+      let paginationDiv = document.getElementById(paginationContainerId);
+      if (!paginationDiv) {
+        paginationDiv = document.createElement('div');
+        paginationDiv.id = paginationContainerId;
+        paginationDiv.style.textAlign = 'center';
+        paginationDiv.style.marginTop = '10px';
+        config.container.appendChild(paginationDiv);
+      }
+      const totalPages = Math.ceil(config.data.length / config.itemsPerPage);
+      paginationDiv.innerHTML = `
+        <button id="${paginationContainerId}-prev" ${config.currentPage <= 1 ? 'disabled' : ''} 
+                style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <span style="margin: 0 10px;">Page ${config.currentPage} of ${totalPages}</span>
+        <button id="${paginationContainerId}-next" ${config.currentPage >= totalPages ? 'disabled' : ''} 
+                style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      `;
+      document.getElementById(`${paginationContainerId}-prev`).addEventListener('click', () => {
+        if (config.currentPage > 1) {
+          config.currentPage--;
+          config.render();
+        }
+      });
+      document.getElementById(`${paginationContainerId}-next`).addEventListener('click', () => {
+        if (config.currentPage < totalPages) {
+          config.currentPage++;
+          config.render();
+        }
+      });
+    }
+    
+    // Socket.IO connection
+    const socket = io("http://localhost:5000");
+    
+    socket.on("dashboard_logs", function(data) {
+      console.log("Dashboard update:", data);
+      document.getElementById('volume-buy').textContent = data.volume_buy;
+      document.getElementById('volume-sell').textContent = data.volume_sell;
+      document.getElementById('total-trades').textContent = data.total_trades;
+    });
+
+    socket.on("transactions_logs", function(data) {
+      console.log("Transactions update:", data);
+      const transactionsConfig = tablesConfig.find(c => c.name === 'transactions');
+      if (transactionsConfig) {
+        transactionsConfig.data = data.transactions || [];
+        transactionsConfig.currentPage = 1;
+        transactionsConfig.render();
+      }
+    });
+
+    socket.on("order_history_logs", function(data) {
+      console.log("Order History update:", data);
+      const orderHistoryConfig = tablesConfig.find(c => c.name === 'orderHistory');
+      if (orderHistoryConfig) {
+        orderHistoryConfig.data = data.order_history || [];
+        orderHistoryConfig.currentPage = 1;
+        orderHistoryConfig.render();
+      }
+    });
+
+    socket.on("orders_logs", function(data) {
+      console.log("Orders update:", data);
+      const ordersConfig = tablesConfig.find(c => c.name === 'orders');
+      if (ordersConfig) {
+        ordersConfig.data = data.orders || [];
+        ordersConfig.currentPage = 1;
+        ordersConfig.render();
+      }
+    });
+
+    socket.on("activity_logs", function(data) {
+      console.log("Activity update:", data);
+      const activityConfig = tablesConfig.find(c => c.name === 'activity');
+      if (activityConfig) {
+        activityConfig.data = data.activities || [];
+        activityConfig.currentPage = 1;
+        activityConfig.render();
+      }
+    });
+
+    socket.on("all_bots_logs", function(data) {
+      console.log("All Bots update:", data);
+      const botsConfig = tablesConfig.find(c => c.name === 'allBots');
+      if (botsConfig) {
+        botsConfig.data = data.bots || [];
+        botsConfig.currentPage = 1;
+        botsConfig.render();
+      }
+    });
+
+    socket.on("bot_orders_logs", function(data) {
+      console.log("Bots Orders update:", data);
+      const botOrdersConfig = tablesConfig.find(c => c.name === 'botOrders');
+      if (botOrdersConfig) {
+        botOrdersConfig.data = data.bot_orders || [];
+        botOrdersConfig.currentPage = 1;
+        botOrdersConfig.render();
+      }
+    });
+
+    socket.on("blocked_users_logs", function(data) {
+      console.log("Blocked Users update:", data);
+      const blockedUsersConfig = tablesConfig.find(c => c.name === 'blockedUsers');
+      if (blockedUsersConfig) {
+        blockedUsersConfig.data = data.blocked_users || [];
+        blockedUsersConfig.currentPage = 1;
+        blockedUsersConfig.render();
+      }
+    });
+    
+    // Initial fetch via HTTP fallback (универсальный вариант)
+    async function initialFetch() {
+      try {
+        // Обновление статистики Dashboard
+        const statsResponse = await fetch('http://localhost:5000/api/dashboard');
+        const statsData = await statsResponse.json();
+        document.getElementById('volume-buy').textContent = statsData.volume_buy;
+        document.getElementById('volume-sell').textContent = statsData.volume_sell;
+        document.getElementById('total-trades').textContent = statsData.total_trades;
+
+        // Получение данных для Transactions
+        const transactionsResponse = await fetch('http://localhost:5000/api/all-transactions');
+        const transactionsDataResponse = await transactionsResponse.json();
+        transactionsData = transactionsDataResponse.transactions || [];
+        const transactionsConfig = tablesConfig.find(c => c.name === 'transactions');
+        if (transactionsConfig && document.getElementById('transactions-section').style.display !== 'none') {
+          transactionsConfig.data = transactionsData;
+          transactionsConfig.currentPage = 1;
+          transactionsConfig.render();
+        }
+
+        // Получение данных для Order History
+        const orderHistoryResponse = await fetch('http://localhost:5000/api/order-history');
+        const orderHistoryDataResponse = await orderHistoryResponse.json();
+        orderHistoryData = orderHistoryDataResponse.order_history || [];
+        const orderHistoryConfig = tablesConfig.find(c => c.name === 'orderHistory');
+        if (orderHistoryConfig && document.getElementById('order-history-section').style.display !== 'none') {
+          orderHistoryConfig.data = orderHistoryData;
+          orderHistoryConfig.currentPage = 1;
+          orderHistoryConfig.render();
+        }
+
+        // Получение данных для Orders
+        const ordersResponse = await fetch('http://localhost:5000/api/all-orders');
+        const ordersDataResponse = await ordersResponse.json();
+        ordersData = ordersDataResponse.orders || [];
+        const ordersConfig = tablesConfig.find(c => c.name === 'orders');
+        if (ordersConfig && document.getElementById('orders-section').style.display !== 'none') {
+          ordersConfig.data = ordersData;
+          ordersConfig.currentPage = 1;
+          ordersConfig.render();
+        }
+
+        // Получение данных для Activity
+        const activityResponse = await fetch('http://localhost:5000/api/all-activity');
+        const activityDataResponse = await activityResponse.json();
+        if (activityDataResponse.activities) {
+          activityData = activityDataResponse.activities;
+        } else {
+          activityData = [activityDataResponse];
+        }
+        const activityConfig = tablesConfig.find(c => c.name === 'activity');
+        if (activityConfig && document.getElementById('activity-section').style.display !== 'none') {
+          activityConfig.data = activityData;
+          activityConfig.currentPage = 1;
+          activityConfig.render();
+        }
+
+        // Получение данных для All Bots
+        const botsResponse = await fetch('http://localhost:5000/api/bots');
+        const botsDataResponse = await botsResponse.json();
+        botsData = botsDataResponse.bots || [];
+        const botsConfig = tablesConfig.find(c => c.name === 'allBots');
+        if (botsConfig && document.getElementById('all-bots-section').style.display !== 'none') {
+          botsConfig.data = botsData;
+          botsConfig.currentPage = 1;
+          botsConfig.render();
+        }
+
+        // Получение данных для Bot Orders
+        const botOrdersResponse = await fetch('http://localhost:5000/api/bot-orders');
+        const botOrdersDataResponse = await botOrdersResponse.json();
+        botOrdersData = botOrdersDataResponse.bot_orders || [];
+        const botOrdersConfig = tablesConfig.find(c => c.name === 'botOrders');
+        if (botOrdersConfig && document.getElementById('bot-orders-section').style.display !== 'none') {
+          botOrdersConfig.data = botOrdersData;
+          botOrdersConfig.currentPage = 1;
+          botOrdersConfig.render();
+        }
+
+        // Получение данных для Blocked Users
+        const blockedUsersResponse = await fetch('http://localhost:5000/api/blocked-users');
+        const blockedUsersDataResponse = await blockedUsersResponse.json();
+        blockedUsersData = blockedUsersDataResponse.blocked_users || [];
+        const blockedUsersConfig = tablesConfig.find(c => c.name === 'blockedUsers');
+        if (blockedUsersConfig && document.getElementById('blocked-users-section').style.display !== 'none') {
+          blockedUsersConfig.data = blockedUsersData;
+          blockedUsersConfig.currentPage = 1;
+          blockedUsersConfig.render();
+        }
+      } catch (e) {
+        console.error('Initial fetch error:', e);
+      }
+    }
+
+    
+    initialFetch();
+    // Auto-update every 30 seconds
+    setInterval(initialFetch, 30000);
+    
+    document.getElementById('create-bot-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var email = document.getElementById('bot-email').value;
+      var fullname = document.getElementById('bot-fullname').value;
+      var password = document.getElementById('bot-password').value;
+      var amount = document.getElementById('bot-amount').value;
+      var forevers = document.getElementById('bot-forevers').value;
+
+      fetch('http://localhost:5000/api/create-bot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email,
+          fullname: fullname,
+          password: password,
+          amount: amount,
+          forevers: forevers
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.bot_id) {
+          document.getElementById('create-bot-form').reset();
+          showNotification(data.message, 'success');
+        } else {
+          showNotification(data.message, 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка при создании бота:', error);
+        showNotification('Ошибка при создании бота', 'error');
+      });
+    });
+
+    document.getElementById('create-order-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      // Получаем значения из полей формы, включая выбранное имя бота
+      var botName = document.getElementById('order-botname').value;
+      var price = document.getElementById('order-price').value;
+      var forevers = document.getElementById('order-forevers').value;
+      var type = document.getElementById('order-type').value;
+
+      fetch('http://localhost:5000/api/create-bot-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bot_name: botName,
+          price: price,
+          amount: forevers,
+          type: type
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.order_id) {
+          document.getElementById('create-order-form').reset();
+          showOrderNotification(data.message, 'success');
+        } else {
+          showOrderNotification(data.message, 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка при создании ордера:', error);
+        showOrderNotification('Ошибка при создании ордера', 'error');
+      });
+    });
+
+      // Функция для заполнения выпадающего списка имен ботов
+    async function populateBotNames() {
+      try {
+        const response = await fetch('http://localhost:5000/api/bots');
+        const data = await response.json();
+        botsData = data.bots || [];
+        const select = document.getElementById('order-botname');
+        // Очистка существующих опций
+        select.innerHTML = '<option value="">Select Bot</option>';
+        botsData.forEach(bot => {
+          const option = document.createElement('option');
+          option.value = bot.bot_name;
+          option.textContent = bot.bot_name;
+          select.appendChild(option);
+        });
+      } catch (err) {
+        console.error('Error fetching bot names:', err);
+      }
+    }
+
+    // Вспомогательная функция для скрытия всех секций, кроме указанной
+    function hideAllSectionsExcept(sectionId) {
+      const sections = [
+        'transactions-section',
+        'orders-section',
+        'order-history-section',
+        'activity-section',
+        'blocked-users-section',
+        'all-bots-section',
+        'bot-orders-section',
+        'create-bot-section',
+        'create-order-section'
+      ];
+      sections.forEach(id => {
+        document.getElementById(id).style.display = (id === sectionId) ? 'block' : 'none';
+      });
+    }
+
+    // Переключение на Orders Section
+    document.getElementById('orders-link').addEventListener('click', async function(e) {
+      e.preventDefault();
+      hideAllSectionsExcept('orders-section');
+      try {
+        const response = await fetch('http://localhost:5000/api/all-orders');
+        const data = await response.json();
+        ordersData = data.orders || [];
+        const ordersConfig = tablesConfig.find(c => c.name === 'orders');
+        if (ordersConfig) {
+          ordersConfig.data = ordersData;
+          ordersConfig.currentPage = 1;
+          ordersConfig.render();
+        }
+      } catch (err) {
+        console.error('Error fetching orders:', err);
+      }
+    });
+
+    // Переключение на Transactions Section
+    document.getElementById('transactions-link').addEventListener('click', async function(e) {
+      e.preventDefault();
+      hideAllSectionsExcept('transactions-section');
+      try {
+        const response = await fetch('http://localhost:5000/api/all-transactions');
+        const data = await response.json();
+        transactionsData = data.transactions || [];
+        const transactionsConfig = tablesConfig.find(c => c.name === 'transactions');
+        if (transactionsConfig) {
+          transactionsConfig.data = transactionsData;
+          transactionsConfig.currentPage = 1;
+          transactionsConfig.render();
+        }
+      } catch (err) {
+        console.error('Error fetching transactions:', err);
+      }
+    });
+
+    // Переключение на Order History Section
+    document.getElementById('order-history-link').addEventListener('click', async function(e) {
+      e.preventDefault();
+      hideAllSectionsExcept('order-history-section');
+      try {
+        const response = await fetch('http://localhost:5000/api/order-history');
+        const data = await response.json();
+        orderHistoryData = data.order_history || [];
+        const orderHistoryConfig = tablesConfig.find(c => c.name === 'orderHistory');
+        if (orderHistoryConfig) {
+          orderHistoryConfig.data = orderHistoryData;
+          orderHistoryConfig.currentPage = 1;
+          orderHistoryConfig.render();
+        }
+      } catch (err) {
+        console.error('Error fetching order history:', err);
+      }
+    });
+
+    // Переключение на Activity Section
+    document.getElementById('activity-link').addEventListener('click', async function(e) {
+      e.preventDefault();
+      hideAllSectionsExcept('activity-section');
+      try {
+        const response = await fetch('http://localhost:5000/api/all-activity');
+        const data = await response.json();
+        if (data.activities) {
+          activityData = data.activities;
+        } else {
+          activityData = [data];
+        }
+        const activityConfig = tablesConfig.find(c => c.name === 'activity');
+        if (activityConfig) {
+          activityConfig.data = activityData;
+          activityConfig.currentPage = 1;
+          activityConfig.render();
+        }
+      } catch (err) {
+        console.error('Error fetching activity:', err);
+      }
+    });
+
+    // Переключение на Blocked Users Section
+    document.getElementById('blocked-users-link').addEventListener('click', async function(e) {
+      e.preventDefault();
+      hideAllSectionsExcept('blocked-users-section');
+      try {
+        const response = await fetch('http://localhost:5000/api/blocked-users');
+        const data = await response.json();
+        blockedUsersData = data.blocked_users || [];
+        const blockedUsersConfig = tablesConfig.find(c => c.name === 'blockedUsers');
+        if (blockedUsersConfig) {
+          blockedUsersConfig.data = blockedUsersData;
+          blockedUsersConfig.currentPage = 1;
+          blockedUsersConfig.render();
+        }
+      } catch (err) {
+        console.error('Error fetching blocked users:', err);
+      }
+    });
+
+    // Переключение на All Bots Section
+    document.getElementById('all-bots-link').addEventListener('click', async function(e) {
+      e.preventDefault();
+      hideAllSectionsExcept('all-bots-section');
+      try {
+        const response = await fetch('http://localhost:5000/api/bots');
+        const data = await response.json();
+        botsData = data.bots || [];
+        const botsConfig = tablesConfig.find(c => c.name === 'allBots');
+        if (botsConfig) {
+          botsConfig.data = botsData;
+          botsConfig.currentPage = 1;
+          botsConfig.render();
+        }
+      } catch (err) {
+        console.error('Error fetching all bots:', err);
+      }
+    });
+
+    // Переключение на Bot Orders Section
+    document.getElementById('bot-orders-link').addEventListener('click', async function(e) {
+      e.preventDefault();
+      hideAllSectionsExcept('bot-orders-section');
+      try {
+        const response = await fetch('http://localhost:5000/api/bot-orders');
+        const data = await response.json();
+        botOrdersData = data.bot_orders || [];
+        const botOrdersConfig = tablesConfig.find(c => c.name === 'botOrders');
+        if (botOrdersConfig) {
+          botOrdersConfig.data = botOrdersData;
+          botOrdersConfig.currentPage = 1;
+          botOrdersConfig.render();
+        }
+      } catch (err) {
+        console.error('Error fetching bot orders:', err);
+      }
+    });
+
+    // Переключение на Create Bot Section (без запроса данных)
+    document.getElementById('create-bot-link').addEventListener('click', function(e) {
+      e.preventDefault();
+      hideAllSectionsExcept('create-bot-section');
+    });
+
+    // Переключение на Create Orders Section (без запроса данных, с вызовом populateBotNames)
+    document.getElementById('create-orders-link').addEventListener('click', function(e) {
+      e.preventDefault();
+      hideAllSectionsExcept('create-order-section');
+      populateBotNames();
+    });
+
+    
+    function showNotification(message, type) {
+      var notification = document.getElementById('notification');
+      var icon = document.getElementById('notification-icon');
+      var messageEl = document.getElementById('notification-message');
+      messageEl.textContent = message;
+      if (type === 'success') {
+        notification.style.backgroundColor = '#28a745';
+        icon.className = 'fas fa-check-circle';
+      } else if (type === 'error') {
+        notification.style.backgroundColor = '#dc3545';
+        icon.className = 'fas fa-exclamation-circle';
+      }
+      notification.style.display = 'flex';
+      setTimeout(function() {
+        notification.style.display = 'none';
+      }, 3000);
+    }
+
+    function showOrderNotification(message, type) {
+      var notification = document.getElementById('order-notification');
+      var icon = document.getElementById('order-notification-icon');
+      var messageEl = document.getElementById('order-notification-message');
+      messageEl.textContent = message;
+      if (type === 'success') {
+        notification.style.backgroundColor = '#28a745';
+        icon.className = 'fas fa-check-circle';
+      } else if (type === 'error') {
+        notification.style.backgroundColor = '#dc3545';
+        icon.className = 'fas fa-exclamation-circle';
+      }
+      notification.style.display = 'flex';
+      setTimeout(function() {
+        notification.style.display = 'none';
+      }, 3000);
+    }
+
+  </script>
+</body>
+</html>

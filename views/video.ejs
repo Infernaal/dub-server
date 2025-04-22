@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Rating</title>
+  <link rel="stylesheet" href="/video.css">
+</head>
+<body>
+  <img class="container">
+    <h1>20024 <a href="#">HooosPoi</a></h1>
+    <video width="50%" controls>
+      <source src="https://d109lodjz8ahmr.cloudfront.net/converted/properties/property-110/main-video/MC583uPurg9YahUS7W4NwCnfwwZTSl22jkrAImnQ.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <form action="/submit" method="POST">
+      <p><strong>Property type:</strong> Buy</p>
+
+      <!-- Orientation -->
+      <label for="orientation">1. Select orientation</label>
+      <select name="orientation" id="orientation">
+        <option value="Portrait" data-mark="3">Portrait</option>
+        <option value="Landscape" data-mark="1">Landscape</option>
+      </select>
+
+      <!-- Type of content -->
+      <label for="contentType">2. Select type of content</label>
+      <select name="contentType" id="contentType">
+        <option value="Video overview" data-mark="3">Video overview</option>
+        <option value="Presentation video" data-mark="2">Presentation video</option>
+        <option value="Promo video" data-mark="2">Promo video</option>
+        <option value="Slide show" data-mark="1">Slide show</option>
+      </select>
+
+      <!-- Video quality -->
+      <p>3. Select video quality:</p>
+      <input type="radio" id="high" name="videoQuality" value="High">
+      <label for="high" class="btn btn-green" data-mark="3">High</label>
+      <input type="radio" id="medium" name="videoQuality" value="Medium">
+      <label for="medium" class="btn btn-yellow" data-mark="2">Medium</label>
+      <input type="radio" id="low" name="videoQuality" value="Low">
+      <label for="low" class="btn btn-red" data-mark="1">Low</label>
+
+      <!-- Video has audio -->
+      <p>4. Video has audio:</p>
+      <input type="radio" id="audioYes" name="videoAudio" value="Yes">
+      <label for="audioYes" class="btn btn-green" data-mark="3">Yes</label>
+      <input type="radio" id="audioNo" name="videoAudio" value="No">
+      <label for="audioNo" class="btn btn-red" data-mark="1">No</label>
+
+      <!-- Photos match video -->
+      <p>5. Do the added photos match the video?</p>
+      <input type="radio" id="photosYes" name="photosMatch" value="Yes">
+      <label for="photosYes" class="btn btn-green" data-mark="3">Yes</label>
+      <input type="radio" id="photosNo" name="photosMatch" value="No">
+      <label for="photosNo" class="btn btn-red" data-mark="1">No</label>
+
+      <!-- Overall rating -->
+      <label for="rating">Overall rating for the video</label>
+      <input name="rating" required="" class="form-control" type="number" max="15" min="1" id="rating" value="0">
+
+      <button type="submit">Save</button>
+      <button type="submit" formaction="/save-next">Save and Next</button>
+    </form>
+
+    <button id="verifyButton" onclick="fetchAnalysisResult()">Verify Video with AI</button>
+    <h3>Уведомления:</h3>
+    <div id="notifications" class="hidden"></div>
+    <img id="potyzhno" src="https://www.meme-arsenal.com/memes/6f24f15d843e069b4b3bb436266be36d.jpg" hidden></img>
+    <div class="description">
+        <h2>Система балів:</h2>
+        <ul>
+          <li>14–15 балів (найкраща оцінка)</li>
+          <li>11–13 балів</li>
+          <li>8–10 балів</li>
+          <li>6–7 балів</li>
+          <li>5 балів (найгірша оцінка)</li>
+        </ul>
+      
+        <h2>Критерії оцінювання:</h2>
+        <div class="criteria">
+          <h3>1. Орієнтація відео:</h3>
+          <ul>
+            <li>Портрет (високий пріоритет) – 3 бали</li>
+            <li>Горизонтальне (низький пріоритет) – 1 бал</li>
+          </ul>
+      
+          <h3>2. Тип відео:</h3>
+          <ul>
+            <li>Відео огляд (найвищий пріоритет) – 3 бали</li>
+            <li>Презентація (високий пріоритет) – 2 бали</li>
+            <li>Промо (середній пріоритет) – 2 бали</li>
+            <li>Слайд-шоу (низький пріоритет) – 1 бал</li>
+          </ul>
+      
+          <h3>3. Якість відео:</h3>
+          <ul>
+            <li>Висока (найвищий пріоритет) – 3 бали</li>
+            <li>Середня (високий пріоритет) – 2 бали</li>
+            <li>Низька (низький пріоритет) – 1 бал</li>
+          </ul>
+      
+          <h3>4. Наявність звуку:</h3>
+          <ul>
+            <li>Так (високий пріоритет) – 3 бали</li>
+            <li>Ні (низький пріоритет) – 1 бал</li>
+          </ul>
+      
+          <h3>5. Відповідність доданих фото до відео:</h3>
+          <ul>
+            <li>Так (найвищий пріоритет) – 3 бали</li>
+            <li>Ні (низький пріоритет) – 1 бал</li>
+          </ul>
+        </div>
+      
+        <button class="btn btn-primary">Алгоритм сортування відео (Правила)</button>
+      </div>      
+  </div>
+
+  <script>
+    function setupSSE(clientId) {
+        const eventSource = new EventSource(`http://35.194.1.64/notify-admin/${clientId}`);
+        const notificationElement = document.getElementById("notifications");
+
+        eventSource.onmessage = function (event) {
+            const message = event.data;
+            console.log("Received message:", message);
+
+            notificationElement.innerHTML = message;
+            notificationElement.classList.remove('hidden');
+
+            if (message.includes("successfully")) {
+                setTimeout(() => {
+                    notificationElement.classList.add('hidden');
+                }, 5000);
+            }
+        };
+
+        eventSource.onerror = function () {
+            console.error("Ошибка в SSE-соединении");
+            eventSource.close();
+        };
+    }
+
+    function getClientIdFromCookies() {
+        const name = "client_id=";
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const trimmed = cookie.trim();
+            if (trimmed.startsWith(name)) {
+                return trimmed.substring(name.length);
+            }
+        }
+        return null;
+    }
+
+    function setClientIdToCookies(clientId) {
+        const expirationDays = 365; // Срок действия куки - 1 год
+        const date = new Date();
+        date.setTime(date.getTime() + (expirationDays * 24 * 60 * 60 * 1000));
+        const expires = "expires=" + date.toUTCString();
+        document.cookie = `client_id=${clientId}; ${expires}; path=/`;
+    }
+
+    function generateClientId() {
+        // Простая генерация случайного client_id (UUID-like)
+        return 'xxxxxx'.replace(/x/g, () => {
+            return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+        });
+    }
+
+    function ensureClientId() {
+        let clientId = getClientIdFromCookies();
+        if (!clientId) {
+            clientId = generateClientId();
+            setClientIdToCookies(clientId);
+            console.log("Сгенерирован новый client_id:", clientId);
+        } else {
+            console.log("Найден существующий client_id:", clientId);
+        }
+        return clientId;
+    }
+
+    const clientId = ensureClientId();
+    setupSSE(clientId);
+
+function fetchAnalysisResult(videoUrl) {
+    const jsonData = { video_url: "https://d1hi1cxwzgt1rg.cloudfront.net/converted/properties/property-2140/main-video/JZCbc4Pnz5DCf4dvlhteGLEXJjFBepTSWNc5Ap4Y.mp4" }; // Создаем объект с данными для отправки
+
+    fetch('http://35.194.1.64/verify-video', { // Укажите ваш API endpoint
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(jsonData), // Сериализуем объект в строку
+    })
+    .then(response => {
+        // Проверка, является ли ответ валидным JSON
+        if (!response.ok) {
+            throw new Error('Ошибка HTTP: ' + response.status);
+        }
+        return response.text(); // Прочитаем ответ как текст
+    })
+    .then(data => {
+        try {
+            const jsonResponse = JSON.parse(data); // Преобразуем текст в JSON
+            console.log('Результат анализа:', jsonResponse);
+            setFormValues(jsonResponse); // Устанавливаем значения в форму
+        } catch (error) {
+            console.error('Ошибка при разборе JSON:', error, data);
+        }
+    })
+    .catch(error => console.error('Ошибка при выполнении запроса:', error));
+}
+
+// Функция для установки значений в форму
+function setFormValues(analysisResult) {
+    try {
+        // Доступ к анализу
+        const result = analysisResult.analysis_result;
+
+        // 1. Устанавливаем ориентацию
+        if (result.orientation && result.orientation.value) {
+            const orientation = result.orientation.value;
+            document.getElementById('orientation').value = orientation;
+        } else {
+            console.error('Поле "orientation" отсутствует или некорректно:', result);
+        }
+
+        // 2. Устанавливаем тип контента
+        if (result.content_type && result.content_type.value) {
+            const contentType = result.content_type.value;
+            document.getElementById('contentType').value = contentType;
+        } else {
+            console.error('Поле "content_type" отсутствует или некорректно:', result);
+        }
+
+        // 3. Устанавливаем качество видео
+        if (result.video_quality && result.video_quality.value) {
+            const videoQuality = result.video_quality.value;
+            const videoQualityInput = document.querySelector(`input[name="videoQuality"][value="${videoQuality}"]`);
+            if (videoQualityInput) {
+                videoQualityInput.checked = true;
+            } else {
+                console.error(`Элемент с именем "videoQuality" и значением "${videoQuality}" не найден.`);
+            }
+        } else {
+            console.error('Поле "video_quality" отсутствует или некорректно:', result);
+        }
+
+        // 4. Устанавливаем наличие аудио
+        if (result.audio && result.audio.value) {
+            const audio = result.audio.value;
+            const audioInput = document.querySelector(`input[name="videoAudio"][value="${audio}"]`);
+            if (audioInput) {
+                audioInput.checked = true;
+            } else {
+                console.error(`Элемент с именем "videoAudio" и значением "${audio}" не найден.`);
+            }
+        } else {
+            console.error('Поле "audio" отсутствует или некорректно:', result);
+        }
+        
+        calculateRating()
+    } catch (error) {
+        console.error('Ошибка при установке значений:', error);
+    }
+    var image = document.getElementById('potyzhno');
+    image.removeAttribute('hidden');
+}
+
+
+function calculateRating() {
+    let totalRating = 0;
+
+    // Orientation selection
+    const orientation = document.getElementById('orientation');
+    totalRating += parseInt(orientation.options[orientation.selectedIndex].getAttribute('data-mark'));
+
+    // Content type selection
+    const contentType = document.getElementById('contentType');
+    totalRating += parseInt(contentType.options[contentType.selectedIndex].getAttribute('data-mark'));
+
+    // Video quality selection
+    const videoQuality = document.querySelector('input[name="videoQuality"]:checked');
+    if (videoQuality) {
+      totalRating += parseInt(videoQuality.nextElementSibling.getAttribute('data-mark'));
+    }
+
+    // Video audio selection
+    const videoAudio = document.querySelector('input[name="videoAudio"]:checked');
+    if (videoAudio) {
+      totalRating += parseInt(videoAudio.nextElementSibling.getAttribute('data-mark'));
+    }
+
+    // Update the overall rating field
+    document.getElementById('rating').value = totalRating;
+  }
+
+  // Add event listeners to update rating when selections change
+  document.querySelectorAll('select, input[type="radio"]').forEach(function(element) {
+    element.addEventListener('change', calculateRating);
+  });
+
+  // Call the function initially to set the default rating
+  calculateRating();
+  </script>
+</body>
+</html>

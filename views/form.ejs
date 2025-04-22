@@ -5,111 +5,318 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Добавить объявление</title>
     <link rel="stylesheet" href="/styles.css">
+    <style>
+        #notifications {
+            padding: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: #4caf50;
+            border-radius: 4px;
+            text-align: center;
+        }
+        #notifications.hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <h1>Добавить объявление</h1>
     <form action="/publish" method="POST" enctype="multipart/form-data">
-        <label for="property_type">Вид жилья:</label>
-        <select name="property_type" id="property_type">
-            <option value="villa">Villa</option>
-            <option value="apartment">Apartment</option>
-            <option value="house">House</option>
-        </select><br>
-
-        <label for="kitchen_area">Площадь кухни:</label>
-        <input type="number" name="kitchen_area" id="kitchen_area" required><br>
-
-        <label for="house_area">Площадь дома:</label>
-        <input type="number" name="house_area" id="house_area" required><br>
-
-        <label for="rooms">Количество комнат:</label>
-        <input type="number" name="rooms" id="rooms" required><br>
-
-        <label for="floors">Этажи:</label>
-        <input type="number" name="floors" id="floors" required><br>
-
         <label for="description">Описание:</label>
         <textarea name="description" id="description" style="width: 100%; height: 200px;"></textarea>
-        <button type="button" onclick="improveDescription()">Improve description with AI</button><br>
+        <button type="button" onclick="improveDescription()">Улучшить описание с AI</button><br>
 
         <label for="image">Загрузить изображения:</label>
-        <input type="file" name="image" id="image" accept="image/*" multiple><br>
+        <input type="file" id="image" name="images[]" multiple accept="image/*">
 
         <button type="submit">Опубликовать</button>
         <button formaction="/save-draft" formmethod="POST">Сохранить черновик</button>
     </form>
 
+    <h3>Уведомления:</h3>
+    <div id="notifications" class="hidden"></div>
+
     <script>
-        function improveDescription() {
-    const propertyType = document.getElementById('property_type').value;
-    const kitchenArea = document.getElementById('kitchen_area').value;
-    const houseArea = document.getElementById('house_area').value;
-    const rooms = document.getElementById('rooms').value;
-    const floors = document.getElementById('floors').value;
-    const description = document.getElementById('description').value;
-    const imageFiles = document.getElementById('image').files;  // Получаем все выбранные файлы
+    function setupSSE(clientId) {
+        const eventSource = new EventSource(`https://dev-ai.dubadu.com/notification/${clientId}`);
+        const notificationElement = document.getElementById("notifications");
 
-    if (imageFiles.length === 0) {
-        console.error('Пожалуйста, выберите хотя бы одно изображение.');
-        return;
+        eventSource.onmessage = function (event) {
+            const message = event.data;
+            console.log("Received message:", message);
+
+            notificationElement.innerHTML = message;
+            notificationElement.classList.remove('hidden');
+
+            if (message.includes("successfully")) {
+                setTimeout(() => {
+                    notificationElement.classList.add('hidden');
+                }, 5000);
+            }
+        };
+
+        eventSource.onerror = function () {
+            console.error("Ошибка в SSE-соединении");
+            eventSource.close();
+        };
     }
 
-    const images = []; // Для хранения base64 кодов изображений
-
-    // Функция для обработки загрузки файлов
-    function processImageFile(index) {
-        if (index >= imageFiles.length) {
-            // После того, как все изображения обработаны, создаем JSON объект
-            const formData = {
-                property_type: propertyType,
-                kitchen_area: kitchenArea,
-                house_area: houseArea,
-                rooms: rooms,
-                floors: floors,
-                description: description,
-                images: images  // Добавляем массив изображений в JSON
-            };
-
-            const jsonData = JSON.stringify(formData);
-            console.log('JSON Data:', jsonData);
-
-            // Отправляем JSON на сервер
-            fetch('http://localhost:5000/improve-description', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: jsonData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.improved_description) {
-                    document.getElementById('description').value = data.improved_description;
-                } else {
-                    console.error('Ошибка:', data.error);
-                }
-            })
-            .catch(error => console.error('Ошибка:', error));
-        } else {
-            // Чтение текущего изображения
-            const reader = new FileReader();
-            reader.onloadend = function () {
-                let base64data = reader.result;
-                if (base64data.startsWith("data:")) {
-                    base64data = base64data.split(",")[1];
-                }
-                images.push(base64data); // Добавляем изображение в массив
-
-                // Обрабатываем следующее изображение
-                processImageFile(index + 1);
-            };
-            reader.readAsDataURL(imageFiles[index]);
+    function getClientIdFromCookies() {
+        const name = "client_id=";
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const trimmed = cookie.trim();
+            if (trimmed.startsWith(name)) {
+                return trimmed.substring(name.length);
+            }
         }
+        return null;
     }
 
-    // Начинаем обработку с первого изображения
-    processImageFile(0);
-}    
+    function setClientIdToCookies(clientId) {
+        const expirationDays = 365; // Срок действия куки - 1 год
+        const date = new Date();
+        date.setTime(date.getTime() + (expirationDays * 24 * 60 * 60 * 1000));
+        const expires = "expires=" + date.toUTCString();
+        document.cookie = `client_id=${clientId}; ${expires}; path=/`;
+    }
+
+    function generateClientId() {
+        // Простая генерация случайного client_id (UUID-like)
+        return 'xxxxxx'.replace(/x/g, () => {
+            return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+        });
+    }
+
+    function ensureClientId() {
+        let clientId = getClientIdFromCookies();
+        if (!clientId) {
+            clientId = generateClientId();
+            setClientIdToCookies(clientId);
+            console.log("Сгенерирован новый client_id:", clientId);
+        } else {
+            console.log("Найден существующий client_id:", clientId);
+        }
+        return clientId;
+    }
+
+    const clientId = ensureClientId();
+    setupSSE(clientId);
+
+    function improveDescription() {
+        const jsonData = {
+            "id": 200,
+            "type": "Rent",
+            "property_category": "Exclusive Property",
+            "property_stage": "null",
+            "building_material": "null",
+            "lat": 24.93329747,
+            "lng": 55.43385066,
+            "description": "null",
+            "address": "null",
+            "gallery": [
+        "https://d109lodjz8ahmr.cloudfront.net/converted/properties/property-920/cover-image/0wjn7RYtagWsmOARQ6bW0EdEqRCss2FK8o3xJqQd_full.webp",
+        "https://d109lodjz8ahmr.cloudfront.net/converted/properties/property-920/gallery/hpn6YyTvnOLGkTCHZJv5QoYYtUTlUK1Z8xUbo6V0_full.webp",
+        "https://d109lodjz8ahmr.cloudfront.net/converted/properties/property-920/gallery/lrutw6KtvOIsFSgcUob1Yorsi5NoavBU18KLYMDO_full.webp",
+        "https://d109lodjz8ahmr.cloudfront.net/converted/properties/property-920/gallery/lDJTEMDzuKUuc5P64UX0m4jmWsxS5RoZgLQVHP9d_full.webp"
+    ],
+            "details": [
+                {
+                    "id": 1,
+                    "label": "Rooms",
+                    "key": "number_rooms",
+                    "type": "integer",
+                    "options": [],
+                    "values": 4
+                },
+                {
+                    "id": 2,
+                    "label": "Floor",
+                    "key": "floor_number",
+                    "type": "integer",
+                    "options": [],
+                    "values": 51
+                },
+                {
+                    "id": 3,
+                    "label": "Floors",
+                    "key": "floors_number",
+                    "type": "integer",
+                    "options": [],
+                    "values": 47
+                },
+                {
+                    "id": 7,
+                    "label": "Land size",
+                    "key": "land_size",
+                    "type": "float",
+                    "options": [],
+                    "values": 118
+                },
+                {
+                    "id": 8,
+                    "label": "Building size",
+                    "key": "building_size",
+                    "type": "float",
+                    "options": [],
+                    "values": 136
+                },
+                {
+                    "id": 9,
+                    "label": "Kitchen",
+                    "key": "kitchen",
+                    "type": "float",
+                    "options": [],
+                    "values": 64
+                },
+                {
+                    "id": 10,
+                    "label": "Bedrooms",
+                    "key": "bedrooms",
+                    "type": "integer",
+                    "options": [],
+                    "values": 2
+                },
+                {
+                    "id": 11,
+                    "label": "Bathrooms",
+                    "key": "bathrooms",
+                    "type": "integer",
+                    "options": [],
+                    "values": 10
+                },
+                {
+                    "id": 12,
+                    "label": "Parking",
+                    "key": "parking",
+                    "type": "integer",
+                    "options": [],
+                    "values": 3
+                },
+                {
+                    "id": 13,
+                    "label": "Beds",
+                    "key": "beds",
+                    "type": "integer",
+                    "options": [],
+                    "values": 5
+                },
+                {
+                    "id": 14,
+                    "label": "Pool",
+                    "key": "pool",
+                    "type": "integer",
+                    "options": [],
+                    "values": 1
+                },
+                {
+                    "id": 15,
+                    "label": "Cooling",
+                    "key": "cooling",
+                    "type": "multi_select",
+                    "options": [
+                        {
+                            "id": 17,
+                            "attribute_id": 15,
+                            "label": "Air conditioner",
+                            "icon": "cooling-air-conditioner.svg"
+                        },
+                        {
+                            "id": 18,
+                            "attribute_id": 15,
+                            "label": "Fan",
+                            "icon": "cooling-fan.svg"
+                        },
+                        {
+                            "id": 19,
+                            "attribute_id": 15,
+                            "label": "Humidifier",
+                            "icon": "cooling-humidifier.svg"
+                        }
+                    ]
+                },
+                {
+                    "id": 17,
+                    "label": "Sewerage",
+                    "key": "sewerage",
+                    "type": "select",
+                    "options": [
+                        {
+                            "id": 24,
+                            "attribute_id": 17,
+                            "label": "Municipal",
+                            "icon": "sewerage-municipal.svg"
+                        }
+                    ]
+                },
+                {
+                    "id": 23,
+                    "label": "Furniture",
+                    "key": "furniture",
+                    "type": "multi_select",
+                    "options": [
+                        {
+                            "id": 65,
+                            "attribute_id": 23,
+                            "label": "Baby changing table",
+                            "icon": "furniture-baby-changing-table.svg"
+                        },
+                        {
+                            "id": 66,
+                            "attribute_id": 23,
+                            "label": "Sofa",
+                            "icon": "furniture-sofa.svg"
+                        }
+                    ]
+                },
+                {
+                    "id": 26,
+                    "label": "Exterior",
+                    "key": "exterior",
+                    "type": "multi_select",
+                    "options": [
+                        {
+                            "id": 92,
+                            "attribute_id": 26,
+                            "label": "Fence",
+                            "icon": "exterior-fence.svg"
+                        }
+                    ]
+                }
+            ]
+        }
+        
+    // Отправляем JSON на сервер
+    fetch('https://dev-ai.dubadu.com/improve-description/' + clientId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(jsonData) // Сериализуем объект в строку
+    })
+    .then(response => {
+        // Проверка, является ли ответ валидным JSON
+        if (!response.ok) {
+            throw new Error('Ошибка HTTP: ' + response.status);
+        }
+        return response.text(); // Прочитаем ответ как текст
+    })
+    .then(data => {
+        try {
+            const jsonResponse = JSON.parse(data); // Попробуем преобразовать текст в JSON
+            if (jsonResponse.improved_description) {
+                document.getElementById('description').value = jsonResponse.improved_description;
+            } else {
+                console.error('Ошибка:', jsonResponse.error);
+            }
+        } catch (error) {
+            console.error('Ошибка при разборе JSON:', error, data);
+        }
+    })
+    .catch(error => console.error('Ошибка:', error));
+}
     </script>
 </body>
 </html>
+
